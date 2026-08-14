@@ -1,0 +1,2442 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Especificación de requerimientos y casos de uso — Dear Angel</title>
+    <style>
+      :root {
+        --cream: #fffaf2;
+        --cream-2: #f8f0e4;
+        --rose: #a8687d;
+        --rose-soft: #f5d6dc;
+        --lilac: #7f668f;
+        --lilac-soft: #e8e0f2;
+        --gold: #a97b36;
+        --gold-soft: #d8b26f;
+        --ink: #49383f;
+        --muted: #705c64;
+        --line: #e8d9d8;
+        --green: #477557;
+      }
+
+      @page {
+        size: A4;
+        margin: 17mm 15mm 18mm;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: #ece7e5;
+      }
+
+      body {
+        width: 210mm;
+        margin: 0 auto;
+        background: #fff;
+        color: var(--ink);
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 10.2pt;
+        line-height: 1.5;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        break-after: avoid;
+        font-family: Georgia, 'Times New Roman', serif;
+        font-weight: 400;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 35pt;
+        letter-spacing: -0.04em;
+        line-height: 1.05;
+      }
+
+      h2 {
+        margin: 0 0 4mm;
+        color: var(--ink);
+        font-size: 22pt;
+        letter-spacing: -0.025em;
+      }
+
+      h3 {
+        margin: 7mm 0 2.5mm;
+        color: var(--lilac);
+        font-size: 15pt;
+      }
+
+      h4 {
+        margin: 4mm 0 1.5mm;
+        font-size: 11pt;
+        font-weight: 700;
+      }
+
+      p {
+        margin: 0 0 3mm;
+      }
+
+      ul,
+      ol {
+        margin: 1.5mm 0 4mm;
+        padding-left: 6mm;
+      }
+
+      li {
+        margin-bottom: 1.2mm;
+      }
+
+      table {
+        width: 100%;
+        margin: 3mm 0 6mm;
+        border-collapse: collapse;
+        break-inside: auto;
+        font-size: 8.8pt;
+      }
+
+      tr {
+        break-inside: avoid;
+      }
+
+      th,
+      td {
+        padding: 2.4mm 2.6mm;
+        border: 0.25mm solid var(--line);
+        vertical-align: top;
+        text-align: left;
+      }
+
+      th {
+        background: var(--cream-2);
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .cover {
+        min-height: 260mm;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+        padding: 21mm 19mm 15mm;
+        background:
+          radial-gradient(circle at 83% 18%, rgb(255 255 255 / 95%), transparent 22%),
+          linear-gradient(145deg, var(--cream) 0%, #fbefeb 52%, var(--lilac-soft) 100%);
+      }
+
+      .cover::after {
+        position: absolute;
+        right: -38mm;
+        bottom: -42mm;
+        width: 115mm;
+        height: 115mm;
+        border: 0.3mm solid rgb(169 123 54 / 35%);
+        border-radius: 50%;
+        box-shadow: 0 0 0 16mm rgb(255 255 255 / 22%);
+        content: '';
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 4mm;
+        font-family: Georgia, serif;
+        font-size: 16pt;
+      }
+
+      .mark {
+        display: grid;
+        width: 13mm;
+        height: 13mm;
+        place-items: center;
+        border: 0.3mm solid rgb(169 123 54 / 55%);
+        border-radius: 50%;
+        color: var(--gold);
+        font-size: 8pt;
+      }
+
+      .kicker {
+        display: block;
+        margin-bottom: 5mm;
+        color: var(--rose);
+        font-size: 8pt;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+      }
+
+      .cover-copy {
+        max-width: 145mm;
+        position: relative;
+        z-index: 1;
+      }
+
+      .cover-copy p {
+        max-width: 125mm;
+        margin-top: 7mm;
+        color: var(--muted);
+        font-size: 13pt;
+        line-height: 1.65;
+      }
+
+      .cover-meta {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3mm;
+        max-width: 155mm;
+      }
+
+      .cover-meta div {
+        padding: 3.5mm;
+        border: 0.3mm solid rgb(168 104 125 / 15%);
+        border-radius: 4mm;
+        background: rgb(255 255 255 / 64%);
+      }
+
+      .cover-meta span,
+      .mini-label {
+        display: block;
+        margin-bottom: 1mm;
+        color: var(--rose);
+        font-size: 6.8pt;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .cover-meta strong {
+        font-size: 9pt;
+      }
+
+      .page {
+        padding: 14mm 15mm 17mm;
+      }
+
+      .page-break {
+        break-before: page;
+      }
+
+      .section-heading {
+        margin-bottom: 6mm;
+        padding-bottom: 3mm;
+        border-bottom: 0.4mm solid var(--gold-soft);
+      }
+
+      .section-number {
+        color: var(--rose);
+        font-size: 7.5pt;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+      }
+
+      .lead {
+        color: var(--muted);
+        font-size: 11pt;
+        line-height: 1.65;
+      }
+
+      .callout,
+      .decision,
+      .warning {
+        margin: 4mm 0 6mm;
+        padding: 4mm 5mm;
+        border-left: 1.2mm solid var(--rose);
+        border-radius: 0 3mm 3mm 0;
+        background: var(--rose-soft);
+        break-inside: avoid;
+      }
+
+      .decision {
+        border-color: var(--gold);
+        background: #fff6df;
+      }
+
+      .warning {
+        border-color: var(--lilac);
+        background: var(--lilac-soft);
+      }
+
+      .status {
+        display: inline-block;
+        padding: 1mm 2.2mm;
+        border-radius: 99mm;
+        font-size: 6.8pt;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .done {
+        background: #e9f5ed;
+        color: var(--green);
+      }
+
+      .planned {
+        background: var(--lilac-soft);
+        color: var(--lilac);
+      }
+
+      .external {
+        background: #fff3d6;
+        color: #7a5a20;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3mm;
+        margin: 4mm 0 6mm;
+      }
+
+      .card {
+        padding: 4mm;
+        border: 0.3mm solid var(--line);
+        border-radius: 4mm;
+        background: var(--cream);
+        break-inside: avoid;
+      }
+
+      .card h3 {
+        margin: 1mm 0 2mm;
+        color: var(--ink);
+        font-size: 13pt;
+      }
+
+      .card p {
+        color: var(--muted);
+        font-size: 8.6pt;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 2mm;
+        margin: 4mm 0 7mm;
+        break-inside: avoid;
+      }
+
+      .flow div {
+        position: relative;
+        padding: 3mm;
+        border-radius: 3mm;
+        background: var(--cream-2);
+        font-size: 8pt;
+        text-align: center;
+      }
+
+      .flow div:not(:last-child)::after {
+        position: absolute;
+        right: -1.8mm;
+        top: 50%;
+        color: var(--gold);
+        content: '›';
+        font-size: 14pt;
+        transform: translateY(-56%);
+      }
+
+      .use-case {
+        margin: 0 0 7mm;
+        padding: 5mm;
+        border: 0.3mm solid var(--line);
+        border-radius: 4mm;
+        background: #fff;
+        break-inside: avoid-page;
+      }
+
+      .use-case-title {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 4mm;
+        margin-bottom: 3mm;
+      }
+
+      .use-case-title h3 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 15pt;
+      }
+
+      .case-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2mm 5mm;
+        margin-bottom: 3mm;
+        font-size: 8.8pt;
+      }
+
+      .case-grid div {
+        padding-bottom: 1.5mm;
+        border-bottom: 0.2mm solid var(--line);
+      }
+
+      .case-grid strong {
+        color: var(--rose);
+      }
+
+      .requirements td:first-child,
+      .rules td:first-child,
+      .review td:first-child {
+        width: 18mm;
+        color: var(--lilac);
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .requirements td:last-child {
+        width: 24mm;
+      }
+
+      .review th:nth-child(3),
+      .review td:nth-child(3) {
+        width: 42mm;
+      }
+
+      .review-boxes {
+        white-space: nowrap;
+      }
+
+      .signature-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12mm;
+        margin-top: 14mm;
+      }
+
+      .signature {
+        padding-top: 12mm;
+        border-top: 0.3mm solid var(--muted);
+        color: var(--muted);
+        font-size: 8pt;
+      }
+
+      .footer-note {
+        margin-top: 10mm;
+        padding-top: 3mm;
+        border-top: 0.25mm solid var(--line);
+        color: var(--muted);
+        font-size: 7.5pt;
+      }
+
+      @media print {
+        html,
+        body {
+          width: auto;
+          margin: 0;
+          background: #fff;
+        }
+
+        .cover {
+          padding-left: 0;
+          padding-right: 0;
+        }
+
+        .page {
+          padding: 0;
+        }
+
+        body {
+          font-size: 9.2pt;
+          line-height: 1.38;
+        }
+
+        h2 {
+          margin-bottom: 3mm;
+          font-size: 20pt;
+        }
+
+        h3 {
+          margin: 4.5mm 0 2mm;
+          font-size: 13.5pt;
+        }
+
+        h4 {
+          margin: 3mm 0 1mm;
+          font-size: 10pt;
+        }
+
+        p {
+          margin-bottom: 2mm;
+        }
+
+        ul,
+        ol {
+          margin: 1mm 0 2.5mm;
+        }
+
+        li {
+          margin-bottom: 0.8mm;
+        }
+
+        table {
+          margin: 2mm 0 4mm;
+          font-size: 7.9pt;
+        }
+
+        th,
+        td {
+          padding: 1.6mm 2mm;
+        }
+
+        .section-heading {
+          margin-bottom: 4mm;
+          padding-bottom: 2mm;
+        }
+
+        .lead {
+          font-size: 10pt;
+          line-height: 1.5;
+        }
+
+        .callout,
+        .decision,
+        .warning {
+          margin: 3mm 0 4mm;
+          padding: 3mm 4mm;
+        }
+
+        .cards,
+        .flow {
+          margin: 3mm 0 4mm;
+        }
+
+        .card {
+          padding: 3mm;
+        }
+
+        .card h3 {
+          font-size: 11.5pt;
+        }
+
+        .use-case {
+          margin-bottom: 4mm;
+          padding: 4mm;
+        }
+
+        .case-grid {
+          margin-bottom: 2mm;
+          font-size: 8.2pt;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="cover">
+      <div class="brand"><span class="mark">DA</span> Dear Angel Nail Studio</div>
+      <div class="cover-copy">
+        <span class="kicker">Documento para validación del negocio</span>
+        <h1>Especificación de requerimientos y casos de uso</h1>
+        <p>
+          Descripción completa de lo que hará la plataforma, quién podrá hacerlo, cómo funcionará y
+          cuáles son las reglas que debe respetar.
+        </p>
+      </div>
+      <div class="cover-meta">
+        <div><span>Versión</span><strong>1.1 implementada</strong></div>
+        <div><span>Fecha</span><strong>12 de agosto de 2026</strong></div>
+        <div><span>Ubicación</span><strong>Mérida, Yucatán</strong></div>
+      </div>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">Guía de revisión</span>
+        <h2>Antes de leer</h2>
+      </div>
+      <p class="lead">
+        Este documento está escrito para que la responsable de Dear Angel pueda confirmar si la
+        plataforma refleja la forma real de trabajar del estudio. No es un contrato legal ni un
+        manual técnico. Es la referencia funcional que guiará el desarrollo.
+      </p>
+      <div class="callout">
+        <strong>La pregunta principal es:</strong> “¿Esto describe correctamente lo que queremos que
+        ocurra en el negocio?” Si una regla no representa la operación real, debe marcarse para
+        cambiarla antes de terminar el sistema.
+      </div>
+
+      <h3>Cómo marcar el documento</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Marca</th>
+            <th>Significado</th>
+            <th>Acción esperada</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>☑ Aceptado</td>
+            <td>La función y sus reglas son correctas.</td>
+            <td>Se conserva tal como está descrita.</td>
+          </tr>
+          <tr>
+            <td>✎ Cambiar</td>
+            <td>La idea sirve, pero necesita modificaciones.</td>
+            <td>Escribir la modificación en notas.</td>
+          </tr>
+          <tr>
+            <td>✕ Eliminar</td>
+            <td>La función no se desea.</td>
+            <td>Se retira del alcance.</td>
+          </tr>
+          <tr>
+            <td>+ Agregar</td>
+            <td>Falta una función o regla importante.</td>
+            <td>Describirla con un ejemplo real.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Estados utilizados</h3>
+      <p>
+        <span class="status done">Ya implementado</span> funciona actualmente en la demostración.
+        <span class="status planned">Planeado</span> forma parte del alcance aprobado, pero se
+        construirá en una fase posterior.
+        <span class="status external">Requiere configuración</span>
+        necesita credenciales, datos o aprobaciones externas para operar realmente.
+      </p>
+
+      <h3>Control del documento</h3>
+      <table>
+        <tbody>
+          <tr>
+            <th>Nombre del proyecto</th>
+            <td>Dear Angel Nail Studio</td>
+          </tr>
+          <tr>
+            <th>Tipo de solución</th>
+            <td>Plataforma web responsive e instalable como PWA</td>
+          </tr>
+          <tr>
+            <th>Idioma</th>
+            <td>Español</td>
+          </tr>
+          <tr>
+            <th>Moneda</th>
+            <td>Pesos mexicanos (MXN)</td>
+          </tr>
+          <tr>
+            <th>Zona horaria</th>
+            <td>America/Merida</td>
+          </tr>
+          <tr>
+            <th>Roles</th>
+            <td>Clienta, manicurista y administradora</td>
+          </tr>
+          <tr>
+            <th>Alcance geográfico</th>
+            <td>Un solo estudio, sin sucursales</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">01 · Visión</span>
+        <h2>Qué resolverá la plataforma</h2>
+      </div>
+      <p class="lead">
+        Dear Angel concentrará en un solo lugar el acceso de clientas y personal, la agenda de cada
+        manicurista, el catálogo de trabajos, las cotizaciones personalizadas, los anticipos, las
+        visitas, las recompensas y la administración del estudio.
+      </p>
+
+      <div class="cards">
+        <div class="card">
+          <span class="mini-label">Clienta</span>
+          <h3>Reservar con claridad</h3>
+          <p>
+            Ver trabajos, cotizar, elegir manicurista, reservar, enviar anticipo y consultar
+            recompensas.
+          </p>
+        </div>
+        <div class="card">
+          <span class="mini-label">Manicurista</span>
+          <h3>Operar su agenda</h3>
+          <p>Publicar disponibilidad, atender solicitudes, crear citas y registrar asistencia.</p>
+        </div>
+        <div class="card">
+          <span class="mini-label">Administradora</span>
+          <h3>Controlar el negocio</h3>
+          <p>Gestionar equipo, reglas, contenido, pagos, recompensas, reportes y configuración.</p>
+        </div>
+      </div>
+
+      <h3>Objetivos del negocio</h3>
+      <ol>
+        <li>Reducir el trabajo manual necesario para coordinar citas por mensajes.</li>
+        <li>Evitar citas encimadas para una misma manicurista.</li>
+        <li>Mostrar disponibilidad real sin revelar información privada de otras clientas.</li>
+        <li>Conocer con anticipación el diseño y tiempo aproximado de cada servicio.</li>
+        <li>Confirmar reservaciones mediante anticipos SPEI revisados por la administradora.</li>
+        <li>Reconocer las visitas frecuentes con recompensas visibles y auditables.</li>
+        <li>Dar a la administradora indicadores para tomar decisiones.</li>
+        <li>Permitir crecimiento del equipo sin rehacer la plataforma.</li>
+      </ol>
+
+      <h3>Alcance incluido</h3>
+      <ul>
+        <li>Cualquier cantidad de manicuristas, dadas de alta por la administradora.</li>
+        <li>Registro y acceso de clientas mediante teléfono y contraseña.</li>
+        <li>Horarios individuales, citas en línea y citas manuales.</li>
+        <li>Catálogo de diseños, calculadora y cotizaciones revisadas.</li>
+        <li>Anticipo por transferencia, comprobante y confirmación manual.</li>
+        <li>Visitas, recompensas, promociones y notificaciones.</li>
+        <li>Reportes, exportación, auditoría, configuración de marca y respaldos.</li>
+      </ul>
+
+      <h3>Fuera del alcance inicial</h3>
+      <ul>
+        <li>
+          Sucursales, inventario, tienda en línea, CFDI y cobro del saldo final dentro de la
+          plataforma.
+        </li>
+        <li>
+          Reembolsos automáticos, lista de espera y aplicaciones nativas de App Store o Play Store.
+        </li>
+        <li>Aplicación automática de recompensas al anticipo.</li>
+        <li>
+          Sincronización bidireccional total con cambios hechos directamente en Google Calendar.
+        </li>
+      </ul>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">02 · Personas y permisos</span>
+        <h2>Quién podrá hacer qué</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Capacidad</th>
+            <th>Clienta</th>
+            <th>Manicurista</th>
+            <th>Administradora</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Crear su propia cuenta</td>
+            <td>Sí</td>
+            <td>No</td>
+            <td>Cuenta inicial única</td>
+          </tr>
+          <tr>
+            <td>Crear perfiles de otras personas</td>
+            <td>No</td>
+            <td>No</td>
+            <td>Clientas y manicuristas</td>
+          </tr>
+          <tr>
+            <td>Ver disponibilidad pública</td>
+            <td>Sí</td>
+            <td>Sí</td>
+            <td>Sí</td>
+          </tr>
+          <tr>
+            <td>Reservar en línea</td>
+            <td>Sí</td>
+            <td>No aplica</td>
+            <td>No aplica</td>
+          </tr>
+          <tr>
+            <td>Crear cita manual sin anticipo</td>
+            <td>No</td>
+            <td>En su agenda</td>
+            <td>Para cualquier manicurista</td>
+          </tr>
+          <tr>
+            <td>Modificar su horario</td>
+            <td>No</td>
+            <td>El propio</td>
+            <td>Global y de cualquiera</td>
+          </tr>
+          <tr>
+            <td>Reprogramar una cita</td>
+            <td>La propia, una vez</td>
+            <td>Las asignadas</td>
+            <td>Cualquiera</td>
+          </tr>
+          <tr>
+            <td>Registrar asistencia</td>
+            <td>No</td>
+            <td>Sus citas</td>
+            <td>Cualquiera</td>
+          </tr>
+          <tr>
+            <td>Publicar catálogo</td>
+            <td>No</td>
+            <td>No</td>
+            <td>Sí</td>
+          </tr>
+          <tr>
+            <td>Revisar cotizaciones</td>
+            <td>No</td>
+            <td>Asignadas o disponibles</td>
+            <td>Puede revisar/asignar</td>
+          </tr>
+          <tr>
+            <td>Aprobar anticipos</td>
+            <td>No</td>
+            <td>Solo consultar confirmación</td>
+            <td>Sí</td>
+          </tr>
+          <tr>
+            <td>Canjear recompensa</td>
+            <td>Solicita/recuerda</td>
+            <td>Sí, al cobro físico</td>
+            <td>Sí y puede revertir</td>
+          </tr>
+          <tr>
+            <td>Ver reportes generales</td>
+            <td>No</td>
+            <td>Solo información propia</td>
+            <td>Sí</td>
+          </tr>
+          <tr>
+            <td>Cambiar logo y datos públicos</td>
+            <td>No</td>
+            <td>No</td>
+            <td>Sí</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="decision">
+        <strong>Regla de autoridad:</strong> existirá una sola administradora. El panel personal se
+        redactará en femenino. Las manicuristas no podrán dar de alta a otras manicuristas ni
+        modificar reglas globales del negocio.
+      </div>
+
+      <h3>Información de cada perfil</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Perfil</th>
+            <th>Datos principales</th>
+            <th>Acceso y recuperación</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Clienta</td>
+            <td>
+              Nombre completo, sexo, teléfono internacional y contraseña. No se exige correo ni
+              edad.
+            </td>
+            <td>Teléfono + contraseña; verificación y recuperación por WhatsApp.</td>
+          </tr>
+          <tr>
+            <td>Manicurista</td>
+            <td>Nombre, correo obligatorio y teléfono opcional/configurable.</td>
+            <td>Correo o teléfono + contraseña; recuperación por correo.</td>
+          </tr>
+          <tr>
+            <td>Administradora</td>
+            <td>Nombre, correo y teléfono si se configura.</td>
+            <td>Correo o teléfono + contraseña; recuperación por correo.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">03 · Recorridos principales</span>
+        <h2>Cómo se usará la plataforma</h2>
+      </div>
+
+      <h3>Reservar un diseño del catálogo</h3>
+      <div class="flow">
+        <div>Explorar diseños</div>
+        <div>Elegir diseño</div>
+        <div>Elegir manicurista y hora</div>
+        <div>Enviar anticipo</div>
+        <div>Recibir confirmación</div>
+      </div>
+      <p>
+        Los diseños publicados ya tendrán precio y duración. Por eso podrán reservarse sin una
+        revisión previa. La reserva solo se confirma cuando el anticipo es aprobado.
+      </p>
+
+      <h3>Cotizar un diseño personalizado</h3>
+      <div class="flow">
+        <div>Configurar y subir referencias</div>
+        <div>Elegir revisora o cualquiera</div>
+        <div>Manicurista revisa</div>
+        <div>Clienta recibe precio y tiempo</div>
+        <div>Reserva con esa manicurista</div>
+      </div>
+      <p>
+        La cotización no bloquea horarios. Cuando una manicurista confirma precio y duración, la
+        clienta podrá reservar exclusivamente con ella usando la disponibilidad compatible.
+      </p>
+
+      <h3>Atender una cita</h3>
+      <div class="flow">
+        <div>Agenda confirmada</div>
+        <div>Recordatorios</div>
+        <div>Clienta asiste</div>
+        <div>Manicurista marca atendida</div>
+        <div>Se registra visita y posibles recompensas</div>
+      </div>
+      <p>
+        Si la clienta no se presenta, la manicurista marca “No asistió” y no se incrementa el
+        contador de visitas. Los 10 minutos de tolerancia son informativos, no una automatización.
+      </p>
+
+      <h3>Aplicar una recompensa</h3>
+      <div class="flow">
+        <div>Completar visitas</div>
+        <div>Desbloquear cupón visual</div>
+        <div>Mostrar aviso</div>
+        <div>Aplicar al cobro físico</div>
+        <div>Manicurista marca usado</div>
+      </div>
+      <p>
+        Las recompensas no reducen el anticipo y no se combinan. Sirven para comprobar el beneficio
+        al momento de cobrar físicamente el servicio.
+      </p>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">04 · Requerimientos funcionales</span>
+        <h2>Funciones obligatorias de la plataforma</h2>
+      </div>
+      <p>
+        Cada requerimiento tiene un identificador para que pueda aprobarse, modificarse y probarse
+        sin ambigüedad. “Implementado” significa disponible en la demostración actual.
+      </p>
+
+      <h3>A. Acceso, seguridad y perfiles</h3>
+      <table class="requirements">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Requerimiento</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RF-001</td>
+            <td>
+              La clienta podrá registrarse con nombre, sexo, teléfono, contraseña y confirmación de
+              contraseña.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-002</td>
+            <td>
+              La clienta deberá verificar su teléfono con un código OTP enviado por el número de
+              Dear Angel.
+            </td>
+            <td><span class="status done">Mock listo</span></td>
+          </tr>
+          <tr>
+            <td>RF-003</td>
+            <td>
+              Clientas entrarán con teléfono y contraseña; personal con correo o teléfono y
+              contraseña.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-004</td>
+            <td>La recuperación de clientas usará WhatsApp y la del personal usará correo.</td>
+            <td><span class="status done">Adaptadores listos</span></td>
+          </tr>
+          <tr>
+            <td>RF-005</td>
+            <td>
+              Todos los campos de contraseña permitirán mostrar u ocultar temporalmente el texto con
+              un icono de ojo.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-006</td>
+            <td>La administradora podrá crear perfiles de clientas y manicuristas.</td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-007</td>
+            <td>
+              La administradora podrá editar datos, pausar, archivar, reactivar e iniciar
+              recuperaciones, pero nunca leer contraseñas.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-008</td>
+            <td>Las contraseñas temporales obligarán a elegir una nueva al primer acceso.</td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-009</td>
+            <td>
+              El sistema limitará intentos fallidos, protegerá sesiones y auditará operaciones
+              sensibles.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>B. Horarios y disponibilidad</h3>
+      <table class="requirements">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Requerimiento</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RF-010</td>
+            <td>
+              Existirá un horario global editable; inicialmente lunes a viernes de 08:00 a 24:00 y
+              fines de semana cerrados.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-011</td>
+            <td>
+              Cada manicurista podrá heredar el horario global o configurar el suyo con varios
+              periodos y descansos.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-012</td>
+            <td>Manicurista y administradora podrán cerrar o cambiar fechas específicas.</td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-013</td>
+            <td>Una manicurista podrá pausar nuevas reservas sin eliminar sus citas existentes.</td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-014</td>
+            <td>
+              Al reducir disponibilidad, el sistema conservará las citas y advertirá cuáles quedaron
+              fuera del nuevo horario.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page page-break">
+      <h3>C. Citas</h3>
+      <table class="requirements">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Requerimiento</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RF-015</td>
+            <td>
+              La clienta elegirá una manicurista o “Cualquiera”. En este último caso verá horarios
+              libres para al menos una.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-016</td>
+            <td>La reserva pública usará intervalos configurables, inicialmente cada hora.</td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-017</td>
+            <td>
+              La duración inicial será 60 minutos; cada cita podrá durar más o menos según el
+              diseño.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-018</td>
+            <td>
+              La anticipación mínima será 4 horas y el horizonte máximo 14 días; ambos editables.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-019</td>
+            <td>
+              El sistema impedirá traslapes para una misma manicurista incluso ante solicitudes
+              simultáneas.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-020</td>
+            <td>Una cita podrá terminar exactamente cuando comienza la siguiente.</td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-021</td>
+            <td>
+              Manicurista y administradora podrán crear citas manuales a cualquier minuto, para
+              clientas registradas o invitadas y sin exigir anticipo.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-022</td>
+            <td>
+              La clienta podrá reprogramar una vez con al menos 24 horas; cambios del personal no
+              consumirán esa oportunidad.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-023</td>
+            <td>La cancelación informará que el anticipo no es reembolsable.</td>
+            <td><span class="status done">Regla implementada</span></td>
+          </tr>
+          <tr>
+            <td>RF-024</td>
+            <td>La manicurista podrá marcar cita confirmada, atendida o no asistida.</td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-025</td>
+            <td>
+              Extender o mover una cita se rechazará si invade otra cita o queda fuera de
+              disponibilidad.
+            </td>
+            <td><span class="status done">Implementado</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>D. Catálogo y favoritos</h3>
+      <table class="requirements">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Requerimiento</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RF-026</td>
+            <td>
+              La administradora publicará diseños con hasta varias fotografías, nombre, descripción,
+              precio, duración, técnica, largo, categorías y estado visible/oculto.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-027</td>
+            <td>
+              Las clientas explorarán el catálogo mediante filtros y podrán guardar favoritos.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-028</td>
+            <td>
+              Un diseño publicado podrá reservarse directamente porque ya tiene precio y duración
+              aprobados.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-029</td>
+            <td>
+              El catálogo mostrará el trabajo realizado por Dear Angel y no funcionará como tienda
+              ni inventario.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page page-break">
+      <h3>E. Calculadora y cotizaciones</h3>
+      <table class="requirements">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Requerimiento</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RF-030</td>
+            <td>
+              La calculadora conservará la lógica útil de la herramienta anterior y mostrará una
+              estimación sujeta a revisión.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-031</td>
+            <td>
+              La administradora podrá crear y editar técnicas, largos, decoraciones, extras,
+              precios, orden, texto e iconos.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-032</td>
+            <td>La clienta podrá adjuntar hasta cinco imágenes de referencia.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-033</td>
+            <td>
+              Toda configuración personalizada requerirá revisión, aunque un diseño parecido se haya
+              realizado antes.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-034</td>
+            <td>
+              La clienta elegirá quién revisa o “Cualquiera”. Si elige cualquiera, la primera
+              manicurista que la tome será la responsable exclusiva.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-035</td>
+            <td>La administradora podrá asignar manualmente solicitudes pendientes.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-036</td>
+            <td>La responsable confirmará o cambiará precio, duración y comentarios.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-037</td>
+            <td>
+              Una cotización aprobada solo permitirá reservar con la manicurista que la revisó.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-038</td>
+            <td>Revisar una cotización no bloqueará ningún horario.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-039</td>
+            <td>
+              El flujo “No tengo diseño” permitirá elegir manicurista; ella contactará a la clienta
+              y creará la cita manualmente.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>F. Anticipos SPEI</h3>
+      <table class="requirements">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Requerimiento</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RF-040</td>
+            <td>
+              El anticipo inicial será $100 MXN y la administradora podrá modificarlo globalmente.
+            </td>
+            <td><span class="status planned">Fase 6</span></td>
+          </tr>
+          <tr>
+            <td>RF-041</td>
+            <td>La reserva generará una referencia única y mostrará datos bancarios editables.</td>
+            <td><span class="status planned">Fase 6</span></td>
+          </tr>
+          <tr>
+            <td>RF-042</td>
+            <td>La clienta tendrá 10 minutos para cargar un comprobante privado.</td>
+            <td><span class="status planned">Fase 6</span></td>
+          </tr>
+          <tr>
+            <td>RF-043</td>
+            <td>
+              Sin comprobante el apartado vencerá y liberará el horario; con comprobante quedará
+              “Pago por verificar”.
+            </td>
+            <td><span class="status planned">Fase 6</span></td>
+          </tr>
+          <tr>
+            <td>RF-044</td>
+            <td>Solo la administradora aprobará o rechazará. Rechazar liberará el horario.</td>
+            <td><span class="status planned">Fase 6</span></td>
+          </tr>
+          <tr>
+            <td>RF-045</td>
+            <td>Al aprobar se emitirá un comprobante digital de reservación; no un CFDI.</td>
+            <td><span class="status planned">Fase 6</span></td>
+          </tr>
+          <tr>
+            <td>RF-046</td>
+            <td>Los comprobantes se conservarán un año y nunca serán públicos.</td>
+            <td><span class="status planned">Fase 6</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page page-break">
+      <h3>G. Visitas, recompensas y promociones</h3>
+      <table class="requirements">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Requerimiento</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RF-047</td>
+            <td>
+              Una cita atendida incrementará una sola vez el contador global de visitas de la
+              clienta.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-048</td>
+            <td>Una ausencia o cancelación no incrementará visitas.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-049</td>
+            <td>
+              La administradora podrá configurar cualquier cantidad de hitos por número de visita,
+              con título y texto libre.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-050</td>
+            <td>El valor inicial será: segunda visita desbloquea 10% para la siguiente cita.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-051</td>
+            <td>
+              La clienta verá un camino visual con recompensas bloqueadas, disponibles y utilizadas.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-052</td>
+            <td>Los cupones serán de un solo uso, no vencerán y no se combinarán.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-053</td>
+            <td>
+              La manicurista elegirá qué cupón aplicar al cobro físico y lo marcará como usado.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-054</td>
+            <td>
+              Solo la administradora podrá corregir visitas o revertir un canje, dejando auditoría.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-055</td>
+            <td>
+              La administradora podrá crear códigos promocionales que entreguen cupones visuales.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-056</td>
+            <td>Ninguna recompensa modificará el anticipo.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>H. Notificaciones e integraciones</h3>
+      <table class="requirements">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Requerimiento</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RF-057</td>
+            <td>Existirá un centro interno con avisos detallados para cada perfil.</td>
+            <td><span class="status planned">Fase 7</span></td>
+          </tr>
+          <tr>
+            <td>RF-058</td>
+            <td>
+              WhatsApp avisará sobre OTP, citas, cambios, cotizaciones, anticipos, cupones y
+              recordatorios.
+            </td>
+            <td><span class="status external">Meta requerida</span></td>
+          </tr>
+          <tr>
+            <td>RF-059</td>
+            <td>Se programarán recordatorios 24 horas y 2 horas antes de cada cita confirmada.</td>
+            <td><span class="status planned">Fase 7</span></td>
+          </tr>
+          <tr>
+            <td>RF-060</td>
+            <td>
+              La falla de WhatsApp o correo no deshará una operación interna correcta; se registrará
+              para reintentar.
+            </td>
+            <td><span class="status planned">Fase 7</span></td>
+          </tr>
+          <tr>
+            <td>RF-061</td>
+            <td>
+              Cada manicurista podrá conectar Google Calendar para recibir citas y actualizaciones
+              creadas por Dear Angel.
+            </td>
+            <td><span class="status external">Google requerido</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>I. Administración, reportes y marca</h3>
+      <table class="requirements">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Requerimiento</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RF-062</td>
+            <td>
+              El dashboard resumirá citas, anticipos, asistencias, ausencias, cancelaciones, diseños
+              populares y clientas frecuentes.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-063</td>
+            <td>La administradora podrá filtrar y exportar información en CSV/Excel.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-064</td>
+            <td>La administradora podrá consultar la auditoría de acciones sensibles.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-065</td>
+            <td>
+              Logo, icono, dirección, teléfono, WhatsApp, redes, mapa, políticas y datos bancarios
+              serán editables.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-066</td>
+            <td>La plataforma podrá instalarse como PWA para todos los roles.</td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+          <tr>
+            <td>RF-067</td>
+            <td>
+              Se realizarán respaldos semanales de base de datos y archivos con procedimiento de
+              restauración.
+            </td>
+            <td><span class="status implemented">Implementado</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">05 · Casos de uso</span>
+        <h2>Historias completas de operación</h2>
+      </div>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-01 · Registrar una clienta</h3>
+          <span class="status done">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> clienta nueva</div>
+          <div><strong>Resultado:</strong> cuenta activa y sesión iniciada</div>
+          <div><strong>Inicio:</strong> selecciona “Crear mi cuenta”</div>
+          <div><strong>Precondición:</strong> el teléfono no pertenece a otra cuenta</div>
+        </div>
+        <h4>Flujo principal</h4>
+        <ol>
+          <li>Captura nombre, sexo, teléfono, contraseña y confirmación.</li>
+          <li>Acepta el aviso de que una menor debe asistir con una persona adulta.</li>
+          <li>El sistema valida los datos y envía un código por WhatsApp.</li>
+          <li>La clienta escribe el código correcto dentro de su vigencia.</li>
+          <li>El sistema activa la cuenta y abre su espacio personal.</li>
+        </ol>
+        <h4>Alternativas</h4>
+        <p>
+          Teléfono duplicado: se ofrece iniciar sesión o recuperar acceso. Código vencido: se
+          permite solicitar otro respetando límites.
+        </p>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-02 · Recuperar una contraseña</h3>
+          <span class="status done">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> cualquier usuaria</div>
+          <div>
+            <strong>Resultado:</strong> contraseña reemplazada y sesiones anteriores cerradas
+          </div>
+          <div><strong>Canal clienta:</strong> WhatsApp</div>
+          <div><strong>Canal personal:</strong> correo</div>
+        </div>
+        <ol>
+          <li>La usuaria escribe su teléfono o correo.</li>
+          <li>
+            El sistema envía un código al canal correspondiente sin revelar si la cuenta existe.
+          </li>
+          <li>La usuaria escribe código, nueva contraseña y confirmación.</li>
+          <li>Puede usar el icono de ojo para verificar temporalmente lo escrito.</li>
+          <li>El sistema guarda la nueva contraseña cifrada y revoca sesiones anteriores.</li>
+        </ol>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-03 · Gestionar personal y clientas</h3>
+          <span class="status done">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> administradora</div>
+          <div><strong>Resultado:</strong> perfil creado o actualizado</div>
+        </div>
+        <ol>
+          <li>La administradora busca o selecciona el perfil.</li>
+          <li>Puede editar datos, iniciar recuperación, pausar, archivar o reactivar.</li>
+          <li>
+            Para una nueva manicurista, el sistema genera una contraseña temporal si no se captura
+            una.
+          </li>
+          <li>La manicurista cambia la contraseña en su primer acceso.</li>
+          <li>Las acciones sensibles se guardan en auditoría.</li>
+        </ol>
+        <p>
+          <strong>Restricción:</strong> la administradora nunca puede leer la contraseña actual de
+          otra persona.
+        </p>
+      </article>
+    </section>
+
+    <section class="page page-break">
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-04 · Configurar disponibilidad</h3>
+          <span class="status done">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> manicurista o administradora</div>
+          <div><strong>Resultado:</strong> horarios publicados actualizados</div>
+        </div>
+        <ol>
+          <li>
+            La usuaria abre Horarios y elige horario global o una manicurista, según permisos.
+          </li>
+          <li>Agrega o quita periodos diarios; puede dejar un descanso entre periodos.</li>
+          <li>Puede heredar el horario global, configurar fechas especiales o pausar reservas.</li>
+          <li>El sistema valida que los periodos no se encimen.</li>
+          <li>Si una cita queda fuera del nuevo horario, la conserva y muestra una advertencia.</li>
+        </ol>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-05 · Reservar un horario disponible</h3>
+          <span class="status done">Agenda base</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> clienta activa</div>
+          <div><strong>Resultado:</strong> horario apartado durante 10 minutos</div>
+          <div><strong>Precondición:</strong> diseño con duración aprobada o duración base</div>
+          <div><strong>Continuación:</strong> anticipo SPEI</div>
+        </div>
+        <ol>
+          <li>Elige manicurista o “Cualquiera” y una fecha dentro del horizonte publicado.</li>
+          <li>El sistema calcula espacios considerando jornada, descansos, citas y duración.</li>
+          <li>La clienta selecciona una hora.</li>
+          <li>La base de datos reserva el intervalo sin permitir que otra solicitud lo tome.</li>
+          <li>Comienza el plazo para cargar el comprobante del anticipo.</li>
+        </ol>
+        <p>
+          <strong>Alternativa:</strong> si otra clienta acaba de tomar el horario, se informa y se
+          recarga la disponibilidad.
+        </p>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-06 · Crear una cita manual</h3>
+          <span class="status done">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> manicurista o administradora</div>
+          <div><strong>Resultado:</strong> cita confirmada sin anticipo obligatorio</div>
+        </div>
+        <ol>
+          <li>Selecciona clienta registrada por teléfono o captura una invitada.</li>
+          <li>Indica fecha, hora exacta —por ejemplo 13:43—, duración y notas.</li>
+          <li>El sistema verifica que cabe en la disponibilidad y no se encime.</li>
+          <li>La cita se crea confirmada y bloquea el intervalo.</li>
+        </ol>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-07 · Reprogramar o cancelar</h3>
+          <span class="status done">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actoras:</strong> clienta, manicurista o administradora</div>
+          <div><strong>Resultado:</strong> cita modificada o cancelada</div>
+        </div>
+        <ol>
+          <li>La usuaria abre una cita vigente.</li>
+          <li>Para reprogramar, elige un horario compatible que no se encime.</li>
+          <li>
+            Si lo hace la clienta, se exige 24 horas de anticipación y que no haya usado su único
+            cambio.
+          </li>
+          <li>Si lo hace el personal, no se consume el cambio de la clienta.</li>
+          <li>Si cancela, se muestra que el anticipo no es reembolsable.</li>
+        </ol>
+      </article>
+    </section>
+
+    <section class="page page-break">
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-08 · Reservar un diseño del catálogo</h3>
+          <span class="status implemented">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> clienta</div>
+          <div><strong>Resultado:</strong> diseño asociado a la reserva</div>
+        </div>
+        <ol>
+          <li>Explora trabajos mediante fotografías y filtros.</li>
+          <li>Abre el detalle con precio, duración y características.</li>
+          <li>Selecciona “Reservar este diseño”.</li>
+          <li>El sistema busca disponibilidad usando la duración publicada.</li>
+          <li>La clienta aparta y continúa al anticipo.</li>
+        </ol>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-09 · Solicitar cotización personalizada</h3>
+          <span class="status implemented">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> clienta</div>
+          <div><strong>Resultado:</strong> solicitud pendiente sin bloquear agenda</div>
+        </div>
+        <ol>
+          <li>Configura opciones de la calculadora y observa una estimación.</li>
+          <li>Adjunta hasta cinco referencias y escribe notas.</li>
+          <li>Elige una manicurista o “Cualquiera” para revisar.</li>
+          <li>Envía la solicitud; el sistema no reserva horario todavía.</li>
+          <li>La clienta consulta el estado desde su cuenta.</li>
+        </ol>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-10 · Tomar y resolver una cotización</h3>
+          <span class="status implemented">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> manicurista</div>
+          <div><strong>Resultado:</strong> precio y duración confirmados</div>
+        </div>
+        <ol>
+          <li>Recibe solicitudes dirigidas a ella y solicitudes abiertas a cualquiera.</li>
+          <li>
+            Si es abierta, la toma; una operación atómica impide que otra la tome simultáneamente.
+          </li>
+          <li>Revisa configuración, referencias y notas.</li>
+          <li>Confirma o cambia precio, tiempo y comentarios.</li>
+          <li>La clienta recibe aviso y solo puede reservar con esa manicurista.</li>
+        </ol>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-11 · Solicitar ayuda sin diseño</h3>
+          <span class="status implemented">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> clienta</div>
+          <div><strong>Resultado:</strong> solicitud de contacto asignada</div>
+        </div>
+        <ol>
+          <li>Selecciona “No tengo diseño” y elige manicurista o cualquiera.</li>
+          <li>Describe brevemente lo que busca o deja referencias opcionales.</li>
+          <li>Una manicurista toma la solicitud y contacta por WhatsApp.</li>
+          <li>Tras acordar idea y tiempo, la manicurista crea una cita manual.</li>
+        </ol>
+      </article>
+    </section>
+
+    <section class="page page-break">
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-12 · Enviar y revisar anticipo</h3>
+          <span class="status planned">Fase 6</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actoras:</strong> clienta y administradora</div>
+          <div><strong>Resultado:</strong> cita confirmada o horario liberado</div>
+        </div>
+        <ol>
+          <li>La clienta ve monto, referencia, cuenta bancaria y políticas antes de pagar.</li>
+          <li>Acepta expresamente la versión vigente de las políticas.</li>
+          <li>Realiza SPEI fuera de la plataforma y sube el comprobante dentro de 10 minutos.</li>
+          <li>La cita queda “Pago por verificar” y conserva el horario.</li>
+          <li>La administradora revisa y aprueba o rechaza.</li>
+          <li>Al aprobar se confirma y se emite comprobante digital; al rechazar se libera.</li>
+        </ol>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-13 · Registrar asistencia y visita</h3>
+          <span class="status implemented">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> manicurista</div>
+          <div><strong>Resultado:</strong> cita cerrada y visita contabilizada cuando aplica</div>
+        </div>
+        <ol>
+          <li>Abre la cita del día y marca “Atendida” o “No asistió”.</li>
+          <li>Atendida incrementa una sola vez el contador global de la clienta.</li>
+          <li>No asistió no incrementa visitas.</li>
+          <li>El sistema evalúa hitos y desbloquea recompensas nuevas.</li>
+          <li>Clienta y manicurista reciben aviso si existe un beneficio.</li>
+        </ol>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-14 · Canjear una recompensa</h3>
+          <span class="status implemented">Implementado</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> manicurista</div>
+          <div><strong>Resultado:</strong> cupón marcado como utilizado</div>
+        </div>
+        <ol>
+          <li>La clienta recuerda a la manicurista que tiene un cupón disponible.</li>
+          <li>La manicurista consulta el perfil y verifica visitas y beneficio.</li>
+          <li>Elige un solo cupón y lo aplica al cobro físico, no al anticipo.</li>
+          <li>Relaciona el canje con la cita y lo marca utilizado.</li>
+          <li>Solo la administradora podrá revertirlo si hubo un error.</li>
+        </ol>
+      </article>
+
+      <article class="use-case">
+        <div class="use-case-title">
+          <h3>CU-15 · Administrar contenido y configuración</h3>
+          <span class="status planned">Fases 4 y 8</span>
+        </div>
+        <div class="case-grid">
+          <div><strong>Actora:</strong> administradora</div>
+          <div><strong>Resultado:</strong> contenido publicado sin cambiar código</div>
+        </div>
+        <ol>
+          <li>Edita catálogo, calculadora, políticas, recompensas o datos públicos.</li>
+          <li>Sube imágenes, iconos o logo según el módulo.</li>
+          <li>Ordena, publica u oculta elementos.</li>
+          <li>La plataforma valida datos y conserva historial cuando corresponde.</li>
+          <li>Los cambios publicados aparecen en la experiencia de la clienta.</li>
+        </ol>
+      </article>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">06 · Reglas del negocio</span>
+        <h2>Condiciones que siempre deben respetarse</h2>
+      </div>
+      <table class="rules">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Regla</th>
+            <th>Razón o efecto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RN-001</td>
+            <td>Una manicurista no puede tener dos citas cuyos tiempos se traslapen.</td>
+            <td>Protección definitiva en la base de datos.</td>
+          </tr>
+          <tr>
+            <td>RN-002</td>
+            <td>Una cita puede terminar exactamente cuando comienza otra.</td>
+            <td>Permite agenda consecutiva.</td>
+          </tr>
+          <tr>
+            <td>RN-003</td>
+            <td>
+              La clienta reserva en intervalos publicados; el personal puede capturar cualquier
+              minuto.
+            </td>
+            <td>Equilibra facilidad pública y flexibilidad operativa.</td>
+          </tr>
+          <tr>
+            <td>RN-004</td>
+            <td>Pausar o reducir horario nunca borra citas ya creadas.</td>
+            <td>Se advierte para decidir si reprogramar.</td>
+          </tr>
+          <tr>
+            <td>RN-005</td>
+            <td>La clienta reprograma una vez y con 24 horas; el personal no consume ese uso.</td>
+            <td>Política acordada del estudio.</td>
+          </tr>
+          <tr>
+            <td>RN-006</td>
+            <td>Cancelar no genera reembolso automático del anticipo.</td>
+            <td>La plataforma no opera devoluciones.</td>
+          </tr>
+          <tr>
+            <td>RN-007</td>
+            <td>Solo citas atendidas incrementan visitas y lo hacen una vez.</td>
+            <td>Evita premios duplicados o por ausencias.</td>
+          </tr>
+          <tr>
+            <td>RN-008</td>
+            <td>Las visitas son globales por clienta, sin importar quién la atendió.</td>
+            <td>La fidelidad pertenece a Dear Angel.</td>
+          </tr>
+          <tr>
+            <td>RN-009</td>
+            <td>Los cupones no vencen, no se combinan y son de un uso.</td>
+            <td>Se aplican manualmente al pago físico.</td>
+          </tr>
+          <tr>
+            <td>RN-010</td>
+            <td>Los cupones nunca reducen el anticipo.</td>
+            <td>El anticipo protege la reserva.</td>
+          </tr>
+          <tr>
+            <td>RN-011</td>
+            <td>Una cotización personalizada siempre requiere revisión.</td>
+            <td>Precio y duración pueden cambiar por complejidad.</td>
+          </tr>
+          <tr>
+            <td>RN-012</td>
+            <td>Una cotización no bloquea horarios.</td>
+            <td>Solo una reserva con anticipo retiene agenda.</td>
+          </tr>
+          <tr>
+            <td>RN-013</td>
+            <td>
+              La primera manicurista que toma una solicitud abierta se vuelve responsable exclusiva.
+            </td>
+            <td>Evita trabajo duplicado.</td>
+          </tr>
+          <tr>
+            <td>RN-014</td>
+            <td>Tras aprobarse la cotización, solo se reserva con la revisora.</td>
+            <td>Ella validó el tiempo y la ejecución.</td>
+          </tr>
+          <tr>
+            <td>RN-015</td>
+            <td>El horario se aparta 10 minutos durante el pago.</td>
+            <td>Si no se carga comprobante se libera.</td>
+          </tr>
+          <tr>
+            <td>RN-016</td>
+            <td>Solo la administradora aprueba o rechaza comprobantes.</td>
+            <td>Control financiero centralizado.</td>
+          </tr>
+          <tr>
+            <td>RN-017</td>
+            <td>Adultos asisten sin niños ni acompañantes.</td>
+            <td>Política visible antes del anticipo.</td>
+          </tr>
+          <tr>
+            <td>RN-018</td>
+            <td>Menores de 16 años deben asistir con una persona adulta.</td>
+            <td>Se avisa al crear cuenta y reservar.</td>
+          </tr>
+          <tr>
+            <td>RN-019</td>
+            <td>La tolerancia de 10 minutos es informativa.</td>
+            <td>No cancela ni cambia la cita automáticamente.</td>
+          </tr>
+          <tr>
+            <td>RN-020</td>
+            <td>Existe una sola administradora activa.</td>
+            <td>Decisión de estructura del negocio.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">07 · Calidad y seguridad</span>
+        <h2>Requerimientos no funcionales</h2>
+      </div>
+      <table class="requirements">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Requerimiento</th>
+            <th>Criterio de aceptación</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>RNF-001</td>
+            <td>Seguridad de contraseñas</td>
+            <td>Se guardan con hash robusto; nunca se muestran ni recuperan en texto legible.</td>
+          </tr>
+          <tr>
+            <td>RNF-002</td>
+            <td>Sesiones seguras</td>
+            <td>
+              Cookies HTTP-only, revocación, expiración y cierre de sesiones anteriores tras
+              recuperar contraseña.
+            </td>
+          </tr>
+          <tr>
+            <td>RNF-003</td>
+            <td>Control de acceso</td>
+            <td>Cada ruta valida sesión, rol y propiedad del recurso en la API.</td>
+          </tr>
+          <tr>
+            <td>RNF-004</td>
+            <td>Privacidad de archivos</td>
+            <td>
+              Referencias y comprobantes se guardan en almacenamiento privado con acceso autorizado.
+            </td>
+          </tr>
+          <tr>
+            <td>RNF-005</td>
+            <td>Integridad de agenda</td>
+            <td>PostgreSQL impide traslapes aunque dos solicitudes lleguen simultáneamente.</td>
+          </tr>
+          <tr>
+            <td>RNF-006</td>
+            <td>Experiencia responsive</td>
+            <td>Flujos principales utilizables desde 390 px de ancho y escritorio.</td>
+          </tr>
+          <tr>
+            <td>RNF-007</td>
+            <td>Accesibilidad</td>
+            <td>
+              Etiquetas de formulario, navegación por teclado, foco visible, contraste suficiente y
+              texto alternativo.
+            </td>
+          </tr>
+          <tr>
+            <td>RNF-008</td>
+            <td>Claridad</td>
+            <td>
+              Textos en español, errores comprensibles y políticas visibles antes del anticipo.
+            </td>
+          </tr>
+          <tr>
+            <td>RNF-009</td>
+            <td>Rendimiento</td>
+            <td>
+              Consultas paginadas, imágenes optimizadas y respuestas normales objetivo menores a 2
+              segundos en operación local.
+            </td>
+          </tr>
+          <tr>
+            <td>RNF-010</td>
+            <td>Disponibilidad externa</td>
+            <td>Una falla de WhatsApp, correo o Calendar no corrompe citas ni pagos internos.</td>
+          </tr>
+          <tr>
+            <td>RNF-011</td>
+            <td>Escalabilidad</td>
+            <td>
+              Arquitectura por módulos, cualquier cantidad de manicuristas y servicios externos
+              mediante adaptadores.
+            </td>
+          </tr>
+          <tr>
+            <td>RNF-012</td>
+            <td>Configurabilidad</td>
+            <td>Reglas del negocio editables desde administración sin modificar código.</td>
+          </tr>
+          <tr>
+            <td>RNF-013</td>
+            <td>Auditoría</td>
+            <td>Cambios sensibles guardan actora, fecha, entidad y datos relevantes.</td>
+          </tr>
+          <tr>
+            <td>RNF-014</td>
+            <td>Respaldo</td>
+            <td>Respaldo semanal de base y archivos, con restauración ensayada.</td>
+          </tr>
+          <tr>
+            <td>RNF-015</td>
+            <td>Retención</td>
+            <td>
+              Comprobantes eliminados al cumplir un año; no se eliminan historiales necesarios.
+            </td>
+          </tr>
+          <tr>
+            <td>RNF-016</td>
+            <td>Reproducibilidad</td>
+            <td>La plataforma completa puede levantarse con Docker siguiendo el README.</td>
+          </tr>
+          <tr>
+            <td>RNF-017</td>
+            <td>Observabilidad</td>
+            <td>Health checks para web, API, worker, base de datos, Redis y almacenamiento.</td>
+          </tr>
+          <tr>
+            <td>RNF-018</td>
+            <td>Calidad</td>
+            <td>
+              TypeScript estricto, lint, formato, pruebas proporcionales al riesgo y migraciones
+              versionadas.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="warning">
+        <strong>Aviso:</strong> el aviso de privacidad, términos y políticas finales deberán ser
+        revisados por una persona especialista en legislación mexicana antes de publicar el sistema.
+        Este documento solo describe el comportamiento funcional acordado.
+      </div>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">08 · Estados y mensajes</span>
+        <h2>Qué verá la usuaria</h2>
+      </div>
+
+      <h3>Estados de una cita</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Estado visible</th>
+            <th>Significado</th>
+            <th>¿Bloquea horario?</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Apartada</td>
+            <td>Horario retenido mientras se carga el comprobante.</td>
+            <td>Sí, durante el plazo</td>
+          </tr>
+          <tr>
+            <td>Pago por verificar</td>
+            <td>La clienta ya cargó comprobante y espera decisión.</td>
+            <td>Sí</td>
+          </tr>
+          <tr>
+            <td>Confirmada</td>
+            <td>Anticipo aprobado o cita manual creada.</td>
+            <td>Sí</td>
+          </tr>
+          <tr>
+            <td>Cancelada</td>
+            <td>La cita fue cancelada.</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>Atendida</td>
+            <td>El servicio se completó.</td>
+            <td>No para fechas futuras</td>
+          </tr>
+          <tr>
+            <td>No asistió</td>
+            <td>La clienta no llegó.</td>
+            <td>No</td>
+          </tr>
+          <tr>
+            <td>Apartado vencido</td>
+            <td>No se cargó comprobante a tiempo.</td>
+            <td>No</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Estados de una cotización</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Estado</th>
+            <th>Significado</th>
+            <th>Acción disponible</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Pendiente</td>
+            <td>Aún no tiene revisora responsable.</td>
+            <td>Una manicurista puede tomarla o la administradora asignarla.</td>
+          </tr>
+          <tr>
+            <td>En revisión</td>
+            <td>Una manicurista ya es responsable.</td>
+            <td>Confirmar o cambiar precio y duración.</td>
+          </tr>
+          <tr>
+            <td>Aprobada</td>
+            <td>Precio y tiempo definitivos para agenda.</td>
+            <td>La clienta puede reservar con la revisora.</td>
+          </tr>
+          <tr>
+            <td>Requiere información</td>
+            <td>Faltan datos o referencias.</td>
+            <td>La clienta complementa la solicitud.</td>
+          </tr>
+          <tr>
+            <td>Cancelada</td>
+            <td>No continuará.</td>
+            <td>Solo consulta de historial.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Estados de una recompensa</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Estado</th>
+            <th>Presentación</th>
+            <th>Regla</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Bloqueada</td>
+            <td>Se muestra el hito pendiente dentro del camino.</td>
+            <td>Aún no alcanza las visitas.</td>
+          </tr>
+          <tr>
+            <td>Disponible</td>
+            <td>Cupón visual destacado con aviso.</td>
+            <td>Puede usarse una vez al cobro físico.</td>
+          </tr>
+          <tr>
+            <td>Utilizada</td>
+            <td>Permanece visible como parte del historial.</td>
+            <td>No puede usarse otra vez salvo reversión administrativa.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">09 · Dependencias y contenido pendiente</span>
+        <h2>Qué se necesita antes de publicar</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Elemento</th>
+            <th>Para qué sirve</th>
+            <th>Responsable / estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Logo e icono definitivos</td>
+            <td>Identidad visual del sitio y PWA.</td>
+            <td>Dear Angel; actualmente provisional.</td>
+          </tr>
+          <tr>
+            <td>Dirección, teléfonos, redes y mapa</td>
+            <td>Información pública.</td>
+            <td>Dear Angel.</td>
+          </tr>
+          <tr>
+            <td>Datos bancarios SPEI</td>
+            <td>Recepción del anticipo.</td>
+            <td>Dear Angel; variables/configuración privada.</td>
+          </tr>
+          <tr>
+            <td>Meta Business y WhatsApp Cloud API</td>
+            <td>OTP y notificaciones reales.</td>
+            <td><span class="status external">Pendiente externo</span></td>
+          </tr>
+          <tr>
+            <td>Plantillas WhatsApp aprobadas</td>
+            <td>Mensajes iniciados por el negocio.</td>
+            <td><span class="status external">Pendiente externo</span></td>
+          </tr>
+          <tr>
+            <td>Correo SMTP y contraseña de aplicación</td>
+            <td>Recuperación del personal.</td>
+            <td>Se configurará por entorno.</td>
+          </tr>
+          <tr>
+            <td>Credenciales Google Calendar</td>
+            <td>Conexión individual de manicuristas.</td>
+            <td><span class="status external">Pendiente externo</span></td>
+          </tr>
+          <tr>
+            <td>Fotografías y precios del catálogo</td>
+            <td>Contenido inicial visible.</td>
+            <td>Dear Angel / administradora.</td>
+          </tr>
+          <tr>
+            <td>Opciones y precios de calculadora</td>
+            <td>Estimación personalizada.</td>
+            <td>Migrar y validar herramienta anterior.</td>
+          </tr>
+          <tr>
+            <td>Políticas finales</td>
+            <td>Aceptación antes del anticipo.</td>
+            <td>Revisión del negocio y legal.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Políticas iniciales a validar</h3>
+      <ol>
+        <li>Agenda con anticipo inicial de $100 MXN.</li>
+        <li>No reembolsable en caso de no asistir.</li>
+        <li>Reagendar con el mismo anticipo solo una vez.</li>
+        <li>Cambios de la clienta con un día de anticipación.</li>
+        <li>Adultos asisten sin niños ni acompañantes.</li>
+        <li>Menores de 16 años asisten con una persona adulta.</li>
+        <li>Diez minutos de tolerancia.</li>
+      </ol>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">10 · Lista de validación</span>
+        <h2>Decisiones para Dear Angel</h2>
+      </div>
+      <p>
+        Marcar una opción y escribir notas cuando se necesite cambiar algo. Las modificaciones se
+        incorporarán a una nueva versión del documento antes de considerarlo aprobado.
+      </p>
+      <table class="review">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tema para confirmar</th>
+            <th>Decisión</th>
+            <th>Notas</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>V-01</td>
+            <td>Datos solicitados a las clientas.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-02</td>
+            <td>Acceso por teléfono y avisos por WhatsApp.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-03</td>
+            <td>Horario global inicial 08:00–24:00, lunes a viernes.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-04</td>
+            <td>Reservas públicas inicialmente cada hora.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-05</td>
+            <td>Duración base de 60 minutos.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-06</td>
+            <td>Anticipación mínima de 4 horas y máxima de 14 días.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-07</td>
+            <td>Una reprogramación con 24 horas de anticipación.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-08</td>
+            <td>Catálogo administrado solo por la administradora.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-09</td>
+            <td>Diseños del catálogo reservables sin revisión.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-10</td>
+            <td>Toda cotización personalizada requiere revisión.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-11</td>
+            <td>Hasta cinco imágenes por solicitud personalizada.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-12</td>
+            <td>La revisora de una cotización es quien debe atenderla.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-13</td>
+            <td>Anticipo SPEI de $100 y comprobante en 10 minutos.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-14</td>
+            <td>Solo la administradora aprueba anticipos.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-15</td>
+            <td>Segunda visita desbloquea 10% para la siguiente cita.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-16</td>
+            <td>Cupones sin vencimiento, de un uso y no combinables.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-17</td>
+            <td>Recordatorios 24 horas y 2 horas antes.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-18</td>
+            <td>Políticas de acompañantes, menores y tolerancia.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-19</td>
+            <td>Funciones indicadas como fuera del alcance inicial.</td>
+            <td class="review-boxes">☐ Aceptar ☐ Cambiar ☐ Eliminar</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>V-20</td>
+            <td>Otro requerimiento que haga falta.</td>
+            <td class="review-boxes">☐ No falta ☐ Agregar</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="page page-break">
+      <div class="section-heading">
+        <span class="section-number">11 · Aprobación</span>
+        <h2>Resultado de la revisión</h2>
+      </div>
+      <div class="callout">
+        Marcar solamente después de revisar el documento completo:
+        <p style="margin-top: 3mm">
+          ☐ <strong>Aprobado sin cambios</strong><br />
+          ☐ <strong>Aprobado con los cambios escritos en este documento</strong><br />
+          ☐ <strong>Requiere una nueva revisión antes de aprobarse</strong>
+        </p>
+      </div>
+
+      <h3>Comentarios generales</h3>
+      <div style="height: 48mm; border: 0.3mm solid var(--line); border-radius: 4mm"></div>
+
+      <div class="signature-grid">
+        <div class="signature">Nombre y firma de la responsable de Dear Angel<br />Fecha:</div>
+        <div class="signature">Nombre y firma de quien documenta/desarrolla<br />Fecha:</div>
+      </div>
+
+      <p class="footer-note">
+        Documento: Especificación de requerimientos y casos de uso · Dear Angel Nail Studio ·
+        Versión 1.0 para revisión · 12 de agosto de 2026. Los cambios aprobados deberán generar una
+        versión posterior con historial de modificaciones.
+      </p>
+    </section>
+  </body>
+</html>

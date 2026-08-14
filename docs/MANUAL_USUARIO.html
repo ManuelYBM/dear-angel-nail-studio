@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Manual de usuario — Dear Angel Nail Studio</title>
+    <style>
+      :root {
+        --ink: #4b363d;
+        --rose: #b56883;
+        --lilac: #9b78a4;
+        --cream: #fff9f1;
+        --gold: #c9a45c;
+        --line: #ead8d5;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #eee;
+        font-family: Arial, sans-serif;
+        line-height: 1.48;
+      }
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 8mm auto;
+        padding: 18mm;
+        background: linear-gradient(145deg, #fffaf3, #f9edf1 70%, #f0e8f5);
+        position: relative;
+        overflow: hidden;
+      }
+      .page::after {
+        content: '';
+        position: absolute;
+        width: 100mm;
+        height: 100mm;
+        border: 1px solid rgba(201, 164, 92, 0.35);
+        border-radius: 50%;
+        right: -55mm;
+        bottom: -55mm;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: Georgia, serif;
+        margin: 0 0 5mm;
+        line-height: 1.08;
+      }
+      h1 {
+        font-size: 31pt;
+      }
+      h2 {
+        font-size: 23pt;
+      }
+      h3 {
+        font-size: 15pt;
+        color: var(--rose);
+        margin-top: 6mm;
+      }
+      p,
+      li,
+      td,
+      th {
+        font-size: 10.2pt;
+      }
+      .brand {
+        color: var(--rose);
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .eyebrow {
+        display: block;
+        color: var(--rose);
+        font-size: 9pt;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        margin-bottom: 5mm;
+      }
+      .cover {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .cover h1 {
+        max-width: 150mm;
+        margin-top: 45mm;
+      }
+      .lead {
+        font-size: 13pt;
+        max-width: 155mm;
+      }
+      .meta {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4mm;
+        border-top: 1px solid var(--gold);
+        padding-top: 5mm;
+      }
+      .meta span {
+        display: block;
+        color: var(--rose);
+        font-size: 8pt;
+        text-transform: uppercase;
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid var(--line);
+        border-radius: 6mm;
+        padding: 5mm;
+        margin: 4mm 0;
+        break-inside: avoid;
+      }
+      .steps {
+        counter-reset: step;
+        list-style: none;
+        padding: 0;
+      }
+      .steps li {
+        counter-increment: step;
+        margin: 3mm 0;
+        padding-left: 11mm;
+        position: relative;
+      }
+      .steps li::before {
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        width: 7mm;
+        height: 7mm;
+        border-radius: 50%;
+        color: white;
+        background: var(--rose);
+        text-align: center;
+        line-height: 7mm;
+        font-weight: 700;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 4mm 0;
+        break-inside: avoid;
+      }
+      th,
+      td {
+        padding: 3mm;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--rose);
+        font-size: 8.6pt;
+        text-transform: uppercase;
+      }
+      .note {
+        border-left: 3px solid var(--gold);
+        padding: 3mm 4mm;
+        background: #fffaf0;
+        margin: 4mm 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5mm;
+      }
+      figure {
+        margin: 5mm auto;
+        text-align: center;
+        break-inside: avoid;
+      }
+      figure img {
+        max-height: 185mm;
+        max-width: 86mm;
+        border-radius: 6mm;
+        box-shadow: 0 3mm 9mm rgba(75, 54, 61, 0.15);
+      }
+      figcaption {
+        font-size: 8.5pt;
+        margin-top: 2mm;
+        color: #7e626c;
+      }
+      code {
+        background: #f4e9ee;
+        padding: 0.5mm 1mm;
+        border-radius: 1mm;
+      }
+      .footer {
+        position: absolute;
+        left: 18mm;
+        right: 18mm;
+        bottom: 9mm;
+        display: flex;
+        justify-content: space-between;
+        font-size: 8pt;
+        color: #90747d;
+      }
+      @media print {
+        body {
+          background: white;
+        }
+        .page {
+          margin: 0;
+          break-after: page;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="page cover">
+      <div class="brand">DA · Dear Angel Nail Studio</div>
+      <div>
+        <span class="eyebrow">Guía de operación</span>
+        <h1>Manual de usuario</h1>
+        <p class="lead">
+          Cómo reservar, administrar citas, revisar anticipos y operar Dear Angel desde celular o
+          computadora.
+        </p>
+      </div>
+      <div class="meta">
+        <div><span>Versión</span><strong>1.0</strong></div>
+        <div><span>Fecha</span><strong>12 de agosto de 2026</strong></div>
+        <div><span>Idioma</span><strong>Español</strong></div>
+      </div>
+    </section>
+
+    <section class="page">
+      <span class="eyebrow">01 · Primeros pasos</span>
+      <h2>Entrar y moverte por la plataforma</h2>
+      <h3>Clientas y clientes</h3>
+      <ol class="steps">
+        <li>
+          Abre la página y pulsa <strong>Iniciar sesión</strong> o <strong>Crear cuenta</strong>.
+        </li>
+        <li>
+          El registro solicita nombre, tratamiento, WhatsApp, contraseña y confirmación de
+          contraseña.
+        </li>
+        <li>
+          Escribe el código recibido por WhatsApp. En demostración el envío funciona en modo
+          simulado.
+        </li>
+        <li>
+          Inicia sesión con teléfono y contraseña. El ojo permite mostrar u ocultar lo escrito.
+        </li>
+      </ol>
+      <h3>Personal</h3>
+      <p>
+        Manicuristas y administradora pueden entrar con correo o teléfono. La recuperación del
+        personal se envía por correo cuando SMTP está activado.
+      </p>
+      <div class="note">
+        <strong>Sesión visible:</strong> arriba aparece un avatar con el nombre y rol actuales. Al
+        tocarlo se abren Cuenta, Agenda, Datos, Notificaciones y Cerrar sesión.
+      </div>
+      <h3>Navegación móvil</h3>
+      <p>
+        La flecha de la esquina superior izquierda regresa al apartado anterior. Los accesos de
+        Diseños, Reservar y Políticas permanecen disponibles. Ninguna pantalla requiere el gesto de
+        retroceso del teléfono.
+      </p>
+      <h3>Editar datos y contraseña</h3>
+      <p>
+        En <strong>Mis datos</strong> se modifican nombre, tratamiento y contacto confirmando la
+        contraseña actual. Cambiar el WhatsApp de un perfil cliente exige verificar nuevamente el
+        número. La contraseña se gestiona como opción secundaria, salvo cuando la cuenta recibió una
+        clave temporal.
+      </p>
+      <div class="footer">
+        <span>Dear Angel Nail Studio</span><span>Manual de usuario · 2</span>
+      </div>
+    </section>
+
+    <section class="page">
+      <span class="eyebrow">02 · Reservaciones</span>
+      <h2>Elegir diseño y apartar una cita</h2>
+      <h3>Diseño del catálogo</h3>
+      <ol class="steps">
+        <li>Abre <strong>Diseños</strong>, usa búsqueda o filtros y selecciona un trabajo.</li>
+        <li>Revisa precio estimado, técnica, largo y duración.</li>
+        <li>Pulsa reservar y elige una manicurista específica o <strong>Cualquiera</strong>.</li>
+        <li>Selecciona un horario. Solo aparecen espacios compatibles con la duración completa.</li>
+      </ol>
+      <h3>Diseño personalizado</h3>
+      <p>
+        En <strong>Cotizar</strong> selecciona técnica, largo, decoraciones y extras; puedes
+        adjuntar hasta cinco imágenes. El resultado es una estimación sujeta a revisión. Elige quién
+        deseas que lo revise o envíalo a cualquiera.
+      </p>
+      <p>
+        Una manicurista confirma o ajusta precio y tiempo. Solo entonces podrás reservar, y la cita
+        quedará con quien tomó o recibió la cotización.
+      </p>
+      <h3>“No tengo diseño”</h3>
+      <p>
+        Usa esta opción para describir libremente tu idea. La manicurista se pondrá de acuerdo
+        contigo fuera de la plataforma y luego podrá crear la cita manual desde su agenda.
+      </p>
+      <div class="note">
+        <strong>Sin traslapes:</strong> una manicurista no puede tener dos citas al mismo tiempo.
+        Una cita sí puede comenzar exactamente cuando termina la anterior.
+      </div>
+      <h3>Anticipo</h3>
+      <ol class="steps">
+        <li>El horario se conserva durante 10 minutos para subir el comprobante.</li>
+        <li>Lee y acepta las políticas antes de enviarlo.</li>
+        <li>
+          Al subir JPG, PNG, WebP o PDF, el estado cambia a <strong>Pago por verificar</strong>.
+        </li>
+        <li>
+          La administradora aprueba o rechaza. Al aprobar, obtienes un comprobante digital de
+          reservación.
+        </li>
+      </ol>
+      <p>
+        <strong>Importante:</strong> el anticipo no es reembolsable. Las recompensas no reducen el
+        anticipo; se aplican al pago físico cuando corresponda.
+      </p>
+      <div class="footer">
+        <span>Dear Angel Nail Studio</span><span>Manual de usuario · 3</span>
+      </div>
+    </section>
+
+    <section class="page">
+      <span class="eyebrow">03 · Agenda y recompensas</span>
+      <h2>Después de reservar</h2>
+      <h3>Consultar una cita</h3>
+      <p>
+        En <strong>Agenda</strong> se muestran fecha, manicurista, duración, diseño y estado.
+        También llegan notificaciones internas y, al activar las credenciales reales, avisos por
+        WhatsApp.
+      </p>
+      <h3>Reprogramar o cancelar</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Acción</th>
+            <th>Regla</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Reprogramación de cliente</td>
+            <td>Una vez y con al menos 24 horas de anticipación.</td>
+          </tr>
+          <tr>
+            <td>Cambio por personal</td>
+            <td>No consume la oportunidad de reprogramación de la clienta o cliente.</td>
+          </tr>
+          <tr>
+            <td>Cancelación</td>
+            <td>Permitida; el anticipo no se devuelve.</td>
+          </tr>
+          <tr>
+            <td>Tolerancia</td>
+            <td>10 minutos como política presencial; no cancela automáticamente en la web.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Visitas y camino de recompensas</h3>
+      <p>
+        Una cita marcada como atendida suma una visita global, sin importar quién realizó el
+        servicio. El camino muestra recompensas bloqueadas, disponibles y utilizadas. Cada cupón es
+        de un uso, no vence y no puede combinarse con otro.
+      </p>
+      <p>
+        La clienta o cliente debe recordar a la manicurista que tiene un cupón. La manicurista
+        decide usarlo en el cobro físico y lo canjea desde el perfil correspondiente. Solo la
+        administradora puede revertir un canje o corregir visitas.
+      </p>
+      <h3>Notificaciones</h3>
+      <p>
+        El centro interno conserva citas, cambios, cotizaciones, anticipos, promociones y cupones.
+        Los recordatorios se preparan 24 horas y 2 horas antes. Una falla de WhatsApp o correo no
+        deshace la operación guardada dentro de Dear Angel.
+      </p>
+      <div class="footer">
+        <span>Dear Angel Nail Studio</span><span>Manual de usuario · 4</span>
+      </div>
+    </section>
+
+    <section class="page">
+      <span class="eyebrow">04 · Manicuristas</span>
+      <h2>Operación del equipo</h2>
+      <h3>Agenda personal</h3>
+      <ul>
+        <li>Consulta solamente las citas propias y sus duraciones.</li>
+        <li>
+          Crea citas manuales para perfiles registrados o invitadas, a cualquier minuto y sin
+          anticipo.
+        </li>
+        <li>Reprograma, cancela, marca atendida o registra que la persona no asistió.</li>
+        <li>No puede extender una cita si invade otra reservación.</li>
+      </ul>
+      <h3>Disponibilidad</h3>
+      <p>
+        Cada manicurista puede usar el horario global o personalizar periodos por día, incluyendo
+        pausas para comer. También puede pausar nuevas reservaciones. Reducir disponibilidad no
+        elimina citas existentes: la plataforma muestra una advertencia para revisarlas.
+      </p>
+      <h3>Cotizaciones</h3>
+      <p>
+        Las solicitudes dirigidas aparecen a la revisora elegida. Si la clienta seleccionó
+        cualquiera, todas pueden verla y la primera que la tome se convierte en responsable. La
+        revisora confirma precio, duración y comentario; después la clienta reserva únicamente con
+        ella.
+      </p>
+      <h3>Cupones</h3>
+      <p>
+        Al abrir una cita se avisa si la persona tiene beneficios disponibles. El canje se registra
+        manualmente y se vincula con la cita; el descuento se cobra físicamente.
+      </p>
+      <h3>Google Calendar</h3>
+      <p>
+        En Integraciones, cada manicurista conecta o desconecta su calendario. Dear Angel crea,
+        cambia o cancela sus propios eventos. Los cambios hechos directamente en Google no
+        sustituyen la agenda de la plataforma.
+      </p>
+      <div class="footer">
+        <span>Dear Angel Nail Studio</span><span>Manual de usuario · 5</span>
+      </div>
+    </section>
+
+    <section class="page">
+      <span class="eyebrow">05 · Administradora</span>
+      <h2>Control cotidiano del estudio</h2>
+      <div class="grid">
+        <div class="card">
+          <strong>Personas</strong>
+          <p>
+            Alta, edición, pausa, archivo y reactivación de clientela y manicuristas; claves
+            temporales y conversión de perfiles invitados.
+          </p>
+        </div>
+        <div class="card">
+          <strong>Agenda</strong>
+          <p>
+            Horario global, políticas de anticipación, duración, intervalo y gestión de cualquier
+            cita.
+          </p>
+        </div>
+        <div class="card">
+          <strong>Catálogo</strong>
+          <p>
+            Diseños, imágenes, precios, tiempos, publicación, técnicas y opciones de la calculadora.
+          </p>
+        </div>
+        <div class="card">
+          <strong>Fidelidad</strong>
+          <p>
+            Hitos ilimitados, promociones, cupones, correcciones de visitas y reversión de canjes.
+          </p>
+        </div>
+        <div class="card">
+          <strong>Anticipos</strong>
+          <p>
+            Datos SPEI, políticas versionadas, revisión de comprobantes y notas de aprobación o
+            rechazo.
+          </p>
+        </div>
+        <div class="card">
+          <strong>Avisos</strong>
+          <p>Plantillas, canal, nombres aprobados por Meta, estado de entregas y reintentos.</p>
+        </div>
+      </div>
+      <h3>Dashboard</h3>
+      <p>
+        Elige Desde y Hasta para consultar citas, atenciones, ausencias, cancelaciones, anticipos
+        pendientes, clientela frecuente y diseños populares. Los cálculos usan la zona horaria de
+        Mérida.
+      </p>
+      <figure>
+        <img src="assets/manual-dashboard-mobile.png" alt="Dashboard administrativo en móvil" />
+        <figcaption>Dashboard real en una pantalla móvil de 390 px.</figcaption>
+      </figure>
+      <div class="footer">
+        <span>Dear Angel Nail Studio</span><span>Manual de usuario · 6</span>
+      </div>
+    </section>
+
+    <section class="page">
+      <span class="eyebrow">06 · Reportes y marca</span>
+      <h2>Información para decidir</h2>
+      <div class="grid">
+        <figure>
+          <img src="assets/manual-reports-mobile.png" alt="Reportes en móvil" />
+          <figcaption>Filtros y exportaciones CSV/Excel.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/manual-settings-mobile.png" alt="Configuración del estudio en móvil" />
+          <figcaption>Información pública y marca editable.</figcaption>
+        </figure>
+      </div>
+      <h3>Reportes</h3>
+      <p>
+        Consulta citas, anticipos, clientela frecuente y diseños. Aplica fechas, estado y
+        manicurista cuando corresponda. CSV y Excel descargan la misma consulta visible y los
+        archivos se protegen contra fórmulas introducidas en textos.
+      </p>
+      <h3>Auditoría</h3>
+      <p>
+        Filtra el historial por fecha, acción, entidad y rol responsable. Aquí se registran cambios
+        sensibles, exportaciones, ajustes de visitas, canjes, pagos y configuración.
+      </p>
+      <h3>Identidad de Dear Angel</h3>
+      <p>
+        En Configuración cambia nombre, frase, ciudad, dirección, teléfono, WhatsApp, redes, mapa,
+        logo e icono. Las imágenes aceptadas son PNG, JPG o WebP de hasta 5 MB. Para el icono se
+        recomienda una imagen cuadrada de 512 × 512 px.
+      </p>
+      <div class="footer">
+        <span>Dear Angel Nail Studio</span><span>Manual de usuario · 7</span>
+      </div>
+    </section>
+
+    <section class="page">
+      <span class="eyebrow">07 · Instalación y ayuda</span>
+      <h2>Usarla como una aplicación</h2>
+      <h3>Android y computadoras</h3>
+      <p>
+        En Chrome o Edge pulsa <strong>Instalar Dear Angel</strong>. También puedes abrir el menú
+        del navegador y elegir Instalar aplicación.
+      </p>
+      <h3>iPhone</h3>
+      <ol class="steps">
+        <li>Abre Dear Angel en Safari.</li>
+        <li>Toca Compartir.</li>
+        <li>Elige <strong>Agregar a pantalla de inicio</strong>.</li>
+      </ol>
+      <p>
+        La aplicación necesita internet para confirmar citas, pagos, cambios de cuenta y operaciones
+        administrativas. Si la conexión falla, aparece un aviso y una pantalla segura; no se simula
+        una confirmación.
+      </p>
+      <h3>Políticas visibles</h3>
+      <ul>
+        <li>Agenda con anticipo configurable.</li>
+        <li>Anticipo no reembolsable en caso de no asistir.</li>
+        <li>Una reprogramación con el mismo anticipo.</li>
+        <li>Cambios con un día de anticipación.</li>
+        <li>Sin acompañantes; menores de 16 con una persona adulta.</li>
+        <li>10 minutos de tolerancia.</li>
+      </ul>
+      <h3>Si algo no responde</h3>
+      <ol class="steps">
+        <li>Verifica tu conexión.</li>
+        <li>Actualiza la página una vez.</li>
+        <li>Confirma que el avatar muestre la cuenta correcta.</li>
+        <li>Conserva el texto del mensaje y comunícalo a la administradora.</li>
+      </ol>
+      <div class="note">
+        Nunca compartas contraseñas ni códigos de verificación. Dear Angel no necesita pedirlos por
+        mensaje para revisar una cita.
+      </div>
+      <div class="footer">
+        <span>Dear Angel Nail Studio</span><span>Manual de usuario · 8</span>
+      </div>
+    </section>
+  </body>
+</html>

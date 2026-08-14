@@ -1,0 +1,769 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SystemSetting {
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+enum UserRole {
+  ADMIN
+  NAIL_TECHNICIAN
+  CLIENT
+}
+
+enum UserStatus {
+  INVITED
+  PENDING_VERIFICATION
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum Sex {
+  FEMALE
+  MALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum ChallengePurpose {
+  VERIFY_PHONE
+  RESET_PASSWORD
+}
+
+enum DeliveryChannel {
+  WHATSAPP
+  EMAIL
+}
+
+enum NotificationKind {
+  APPOINTMENT
+  QUOTE
+  PAYMENT
+  COUPON
+  REMINDER
+  SYSTEM
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum CalendarSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+  DELETED
+}
+
+model User {
+  id                  String     @id @default(uuid()) @db.Uuid
+  role                UserRole
+  status              UserStatus
+  fullName            String     @map("full_name")
+  sex                 Sex?
+  phone               String?    @unique
+  email               String?    @unique
+  passwordHash        String?    @map("password_hash")
+  phoneVerifiedAt     DateTime?  @map("phone_verified_at") @db.Timestamptz
+  emailVerifiedAt     DateTime?  @map("email_verified_at") @db.Timestamptz
+  mustChangePassword  Boolean    @default(false) @map("must_change_password")
+  failedLoginAttempts Int        @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?  @map("locked_until") @db.Timestamptz
+  lastLoginAt         DateTime?  @map("last_login_at") @db.Timestamptz
+  archivedAt          DateTime?  @map("archived_at") @db.Timestamptz
+  createdAt           DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  sessions               Session[]
+  challenges             VerificationChallenge[]
+  auditEntries           AuditLog[]              @relation("AuditActor")
+  technicianSchedule     TechnicianSchedule?
+  technicianAppointments Appointment[]           @relation("TechnicianAppointments")
+  clientAppointments     Appointment[]           @relation("ClientAppointments")
+  createdAppointments    Appointment[]           @relation("CreatedAppointments")
+  createdCatalogDesigns  CatalogDesign[]         @relation("CreatedCatalogDesigns")
+  catalogFavorites       CatalogFavorite[]
+  clientQuotes           CustomQuote[]           @relation("ClientQuotes")
+  preferredQuotes        CustomQuote[]           @relation("PreferredTechnicianQuotes")
+  assignedQuotes         CustomQuote[]           @relation("AssignedTechnicianQuotes")
+  reviewedQuotes         CustomQuote[]           @relation("ReviewedQuotes")
+  visitEntries           ClientVisitEntry[]      @relation("ClientVisitOwner")
+  createdVisitEntries    ClientVisitEntry[]      @relation("VisitEntryCreator")
+  rewardCoupons          ClientCoupon[]          @relation("ClientCouponOwner")
+  issuedCoupons          ClientCoupon[]          @relation("CouponIssuer")
+  redeemedCoupons        ClientCoupon[]          @relation("CouponRedeemer")
+  createdRewardRules     RewardRule[]            @relation("RewardRuleCreator")
+  createdPromotions      Promotion[]             @relation("PromotionCreator")
+  reviewedDeposits       DepositPayment[]        @relation("DepositReviewer")
+  notifications          Notification[]
+  calendarConnection     CalendarConnection?
+  calendarEventLinks     CalendarEventLink[]     @relation("TechnicianCalendarEvents")
+
+  @@index([role, status])
+  @@index([fullName])
+  @@map("users")
+}
+
+model Session {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz
+  lastUsedAt DateTime  @default(now()) @map("last_used_at") @db.Timestamptz
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("sessions")
+}
+
+model VerificationChallenge {
+  id          String           @id @default(uuid()) @db.Uuid
+  userId      String           @map("user_id") @db.Uuid
+  purpose     ChallengePurpose
+  channel     DeliveryChannel
+  codeHash    String           @map("code_hash")
+  destination String
+  expiresAt   DateTime         @map("expires_at") @db.Timestamptz
+  consumedAt  DateTime?        @map("consumed_at") @db.Timestamptz
+  attempts    Int              @default(0)
+  maxAttempts Int              @default(5) @map("max_attempts")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, consumedAt])
+  @@index([expiresAt])
+  @@map("verification_challenges")
+}
+
+model AuditLog {
+  id          BigInt   @id @default(autoincrement())
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  metadata    Json?
+  ipAddress   String?  @map("ip_address")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  actor User? @relation("AuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model StudioSettings {
+  id            String   @id @default("default")
+  businessName  String   @default("Dear Angel Nail Studio") @map("business_name")
+  tagline       String   @default("Una carta al autocuidado y la belleza.")
+  city          String   @default("Mérida")
+  state         String   @default("Yucatán")
+  addressLine   String?  @map("address_line")
+  publicPhone   String?  @map("public_phone")
+  whatsapp      String?
+  instagramUrl  String?  @map("instagram_url")
+  facebookUrl   String?  @map("facebook_url")
+  tiktokUrl     String?  @map("tiktok_url")
+  websiteUrl    String?  @map("website_url")
+  mapUrl        String?  @map("map_url")
+  logoObjectKey String?  @map("logo_object_key")
+  logoMimeType  String?  @map("logo_mime_type")
+  logoFilename  String?  @map("logo_filename")
+  iconObjectKey String?  @map("icon_object_key")
+  iconMimeType  String?  @map("icon_mime_type")
+  iconFilename  String?  @map("icon_filename")
+  brandVersion  Int      @default(1) @map("brand_version")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("studio_settings")
+}
+
+enum AppointmentSource {
+  ONLINE
+  MANUAL
+}
+
+enum AppointmentStatus {
+  HELD
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+  EXPIRED
+}
+
+model BookingPolicy {
+  id                     String   @id @default("default")
+  defaultDurationMinutes Int      @default(60) @map("default_duration_minutes")
+  slotIntervalMinutes    Int      @default(60) @map("slot_interval_minutes")
+  minimumLeadMinutes     Int      @default(240) @map("minimum_lead_minutes")
+  maximumAdvanceDays     Int      @default(14) @map("maximum_advance_days")
+  holdMinutes            Int      @default(10) @map("hold_minutes")
+  rescheduleNoticeHours  Int      @default(24) @map("reschedule_notice_hours")
+  clientRescheduleLimit  Int      @default(1) @map("client_reschedule_limit")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt              DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("booking_policies")
+}
+
+model GlobalWorkingPeriod {
+  id          String   @id @default(uuid()) @db.Uuid
+  dayOfWeek   Int      @map("day_of_week")
+  startMinute Int      @map("start_minute")
+  endMinute   Int      @map("end_minute")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([dayOfWeek, startMinute, endMinute])
+  @@index([dayOfWeek])
+  @@map("global_working_periods")
+}
+
+model TechnicianSchedule {
+  technicianId       String   @id @map("technician_id") @db.Uuid
+  usesGlobalSchedule Boolean  @default(true) @map("uses_global_schedule")
+  acceptingBookings  Boolean  @default(true) @map("accepting_bookings")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  technician    User                      @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  weeklyPeriods TechnicianWorkingPeriod[]
+  overrides     ScheduleDayOverride[]
+
+  @@map("technician_schedules")
+}
+
+model TechnicianWorkingPeriod {
+  id           String   @id @default(uuid()) @db.Uuid
+  technicianId String   @map("technician_id") @db.Uuid
+  dayOfWeek    Int      @map("day_of_week")
+  startMinute  Int      @map("start_minute")
+  endMinute    Int      @map("end_minute")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  schedule TechnicianSchedule @relation(fields: [technicianId], references: [technicianId], onDelete: Cascade)
+
+  @@unique([technicianId, dayOfWeek, startMinute, endMinute])
+  @@index([technicianId, dayOfWeek])
+  @@map("technician_working_periods")
+}
+
+model ScheduleDayOverride {
+  id           String   @id @default(uuid()) @db.Uuid
+  technicianId String   @map("technician_id") @db.Uuid
+  date         DateTime @db.Date
+  isClosed     Boolean  @default(false) @map("is_closed")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  schedule TechnicianSchedule       @relation(fields: [technicianId], references: [technicianId], onDelete: Cascade)
+  periods  ScheduleOverridePeriod[]
+
+  @@unique([technicianId, date])
+  @@index([date])
+  @@map("schedule_day_overrides")
+}
+
+model ScheduleOverridePeriod {
+  id          String @id @default(uuid()) @db.Uuid
+  overrideId  String @map("override_id") @db.Uuid
+  startMinute Int    @map("start_minute")
+  endMinute   Int    @map("end_minute")
+
+  override ScheduleDayOverride @relation(fields: [overrideId], references: [id], onDelete: Cascade)
+
+  @@unique([overrideId, startMinute, endMinute])
+  @@map("schedule_override_periods")
+}
+
+model Appointment {
+  id                    String            @id @default(uuid()) @db.Uuid
+  technicianId          String            @map("technician_id") @db.Uuid
+  clientId              String?           @map("client_id") @db.Uuid
+  createdByUserId       String            @map("created_by_user_id") @db.Uuid
+  catalogDesignId       String?           @map("catalog_design_id") @db.Uuid
+  customQuoteId         String?           @map("custom_quote_id") @db.Uuid
+  source                AppointmentSource
+  status                AppointmentStatus
+  startAt               DateTime          @map("start_at") @db.Timestamptz
+  endAt                 DateTime          @map("end_at") @db.Timestamptz
+  durationMinutes       Int               @map("duration_minutes")
+  holdExpiresAt         DateTime?         @map("hold_expires_at") @db.Timestamptz
+  clientRescheduleCount Int               @default(0) @map("client_reschedule_count")
+  guestName             String?           @map("guest_name")
+  guestPhone            String?           @map("guest_phone")
+  notes                 String?
+  cancelledAt           DateTime?         @map("cancelled_at") @db.Timestamptz
+  completedAt           DateTime?         @map("completed_at") @db.Timestamptz
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  technician        User               @relation("TechnicianAppointments", fields: [technicianId], references: [id], onDelete: Restrict)
+  client            User?              @relation("ClientAppointments", fields: [clientId], references: [id], onDelete: SetNull)
+  createdBy         User               @relation("CreatedAppointments", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  catalogDesign     CatalogDesign?     @relation(fields: [catalogDesignId], references: [id], onDelete: SetNull)
+  customQuote       CustomQuote?       @relation(fields: [customQuoteId], references: [id], onDelete: SetNull)
+  visitEntry        ClientVisitEntry?
+  redeemedCoupon    ClientCoupon?      @relation("CouponRedeemedAppointment")
+  depositPayment    DepositPayment?
+  calendarEventLink CalendarEventLink?
+
+  @@index([technicianId, startAt])
+  @@index([clientId, startAt])
+  @@index([status, holdExpiresAt])
+  @@index([catalogDesignId])
+  @@map("appointments")
+}
+
+model NotificationTemplate {
+  key                   String           @id
+  label                 String
+  titleTemplate         String           @map("title_template")
+  bodyTemplate          String           @map("body_template")
+  defaultChannel        DeliveryChannel? @map("default_channel")
+  whatsappTemplateName  String?          @map("whatsapp_template_name")
+  whatsappParameterKeys String[]         @default([]) @map("whatsapp_parameter_keys")
+  active                Boolean          @default(true)
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  notifications Notification[]
+
+  @@map("notification_templates")
+}
+
+model Notification {
+  id          String           @id @default(uuid()) @db.Uuid
+  userId      String           @map("user_id") @db.Uuid
+  templateKey String?          @map("template_key")
+  kind        NotificationKind
+  title       String
+  body        String
+  actionUrl   String?          @map("action_url")
+  payload     Json?
+  dedupeKey   String?          @unique @map("dedupe_key")
+  readAt      DateTime?        @map("read_at") @db.Timestamptz
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   NotificationTemplate?  @relation(fields: [templateKey], references: [key], onDelete: SetNull)
+  deliveries NotificationDelivery[]
+
+  @@index([userId, readAt, createdAt])
+  @@index([kind, createdAt])
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id             String                     @id @default(uuid()) @db.Uuid
+  notificationId String                     @map("notification_id") @db.Uuid
+  channel        DeliveryChannel
+  destination    String
+  status         NotificationDeliveryStatus @default(PENDING)
+  attempts       Int                        @default(0)
+  nextAttemptAt  DateTime                   @default(now()) @map("next_attempt_at") @db.Timestamptz
+  lockedAt       DateTime?                  @map("locked_at") @db.Timestamptz
+  provider       String?
+  externalId     String?                    @map("external_id")
+  lastError      String?                    @map("last_error")
+  sentAt         DateTime?                  @map("sent_at") @db.Timestamptz
+  createdAt      DateTime                   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime                   @updatedAt @map("updated_at") @db.Timestamptz
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, channel])
+  @@index([status, nextAttemptAt])
+  @@map("notification_deliveries")
+}
+
+model CalendarConnection {
+  userId                String    @id @map("user_id") @db.Uuid
+  calendarId            String    @default("primary") @map("calendar_id")
+  encryptedAccessToken  String?   @map("encrypted_access_token")
+  encryptedRefreshToken String?   @map("encrypted_refresh_token")
+  tokenExpiresAt        DateTime? @map("token_expires_at") @db.Timestamptz
+  connectedAt           DateTime  @default(now()) @map("connected_at") @db.Timestamptz
+  lastSyncAt            DateTime? @map("last_sync_at") @db.Timestamptz
+  lastError             String?   @map("last_error")
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("calendar_connections")
+}
+
+model CalendarEventLink {
+  appointmentId   String             @id @map("appointment_id") @db.Uuid
+  technicianId    String             @map("technician_id") @db.Uuid
+  externalEventId String?            @map("external_event_id")
+  status          CalendarSyncStatus @default(PENDING)
+  lastError       String?            @map("last_error")
+  lastSyncedAt    DateTime?          @map("last_synced_at") @db.Timestamptz
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  technician  User        @relation("TechnicianCalendarEvents", fields: [technicianId], references: [id], onDelete: Cascade)
+
+  @@index([technicianId, status])
+  @@map("calendar_event_links")
+}
+
+enum DepositStatus {
+  AWAITING_RECEIPT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+model PaymentSettings {
+  id            String   @id @default("default")
+  amountCents   Int      @default(10000) @map("amount_cents")
+  recipientName String   @default("Dear Angel Nail Studio") @map("recipient_name")
+  bankName      String   @default("Configurar banco") @map("bank_name")
+  clabe         String   @default("000000000000000000")
+  accountNumber String?  @map("account_number")
+  transferNotes String   @default("Escribe la referencia exactamente como aparece en tu reservación.") @map("transfer_notes")
+  policyVersion String   @default("2026-08-12-r1") @map("policy_version")
+  policyText    String   @default("El anticipo no es reembolsable en caso de cancelación o inasistencia. Puedes reprogramar una sola vez con el mismo anticipo y al menos 24 horas de anticipación. Adultos asisten sin niñas, niños ni acompañantes. Las personas menores de 16 años deben asistir con una persona adulta. Hay 10 minutos de tolerancia.") @map("policy_text")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("payment_settings")
+}
+
+model DepositPayment {
+  id                    String        @id @default(uuid()) @db.Uuid
+  appointmentId         String        @unique @map("appointment_id") @db.Uuid
+  reference             String        @unique
+  amountCents           Int           @map("amount_cents")
+  status                DepositStatus @default(AWAITING_RECEIPT)
+  recipientNameSnapshot String        @map("recipient_name_snapshot")
+  bankNameSnapshot      String        @map("bank_name_snapshot")
+  clabeSnapshot         String        @map("clabe_snapshot")
+  accountNumberSnapshot String?       @map("account_number_snapshot")
+  transferNotesSnapshot String        @map("transfer_notes_snapshot")
+  objectKey             String?       @map("object_key")
+  mimeType              String?       @map("mime_type")
+  filename              String?
+  sizeBytes             Int?          @map("size_bytes")
+  receiptUploadedAt     DateTime?     @map("receipt_uploaded_at") @db.Timestamptz
+  retentionUntil        DateTime?     @map("retention_until") @db.Timestamptz
+  receiptPurgedAt       DateTime?     @map("receipt_purged_at") @db.Timestamptz
+  acceptedPolicyVersion String?       @map("accepted_policy_version")
+  acceptedPoliciesAt    DateTime?     @map("accepted_policies_at") @db.Timestamptz
+  reviewedByUserId      String?       @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt            DateTime?     @map("reviewed_at") @db.Timestamptz
+  reviewNotes           String?       @map("review_notes")
+  confirmationCode      String?       @unique @map("confirmation_code")
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  reviewedBy  User?       @relation("DepositReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([retentionUntil])
+  @@index([reviewedByUserId, reviewedAt])
+  @@map("deposit_payments")
+}
+
+enum ClientVisitReason {
+  APPOINTMENT_COMPLETED
+  ADMIN_CORRECTION
+}
+
+enum CouponSource {
+  VISIT_REWARD
+  PROMOTION
+}
+
+enum CouponStatus {
+  AVAILABLE
+  REDEEMED
+}
+
+model ClientVisitEntry {
+  id              String            @id @default(uuid()) @db.Uuid
+  clientId        String            @map("client_id") @db.Uuid
+  appointmentId   String?           @unique @map("appointment_id") @db.Uuid
+  delta           Int
+  reason          ClientVisitReason
+  note            String?
+  createdByUserId String            @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz
+
+  client      User         @relation("ClientVisitOwner", fields: [clientId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Restrict)
+  createdBy   User         @relation("VisitEntryCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([clientId, createdAt])
+  @@index([createdByUserId, createdAt])
+  @@map("client_visit_entries")
+}
+
+model RewardRule {
+  id              String   @id @default(uuid()) @db.Uuid
+  visitNumber     Int      @unique @map("visit_number")
+  title           String
+  description     String
+  iconText        String   @default("✦") @map("icon_text")
+  active          Boolean  @default(true)
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  createdBy User           @relation("RewardRuleCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  coupons   ClientCoupon[]
+
+  @@index([active, visitNumber])
+  @@map("reward_rules")
+}
+
+model Promotion {
+  id              String   @id @default(uuid()) @db.Uuid
+  code            String   @unique
+  title           String
+  description     String
+  iconText        String   @default("♡") @map("icon_text")
+  active          Boolean  @default(true)
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  createdBy User           @relation("PromotionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  coupons   ClientCoupon[]
+
+  @@index([active, createdAt])
+  @@map("promotions")
+}
+
+model ClientCoupon {
+  id                    String       @id @default(uuid()) @db.Uuid
+  clientId              String       @map("client_id") @db.Uuid
+  rewardRuleId          String?      @map("reward_rule_id") @db.Uuid
+  promotionId           String?      @map("promotion_id") @db.Uuid
+  source                CouponSource
+  status                CouponStatus @default(AVAILABLE)
+  title                 String
+  description           String
+  iconText              String       @default("✦") @map("icon_text")
+  issuedByUserId        String?      @map("issued_by_user_id") @db.Uuid
+  redeemedByUserId      String?      @map("redeemed_by_user_id") @db.Uuid
+  redeemedAppointmentId String?      @unique @map("redeemed_appointment_id") @db.Uuid
+  redeemedAt            DateTime?    @map("redeemed_at") @db.Timestamptz
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  client              User         @relation("ClientCouponOwner", fields: [clientId], references: [id], onDelete: Cascade)
+  rewardRule          RewardRule?  @relation(fields: [rewardRuleId], references: [id], onDelete: Restrict)
+  promotion           Promotion?   @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  issuedBy            User?        @relation("CouponIssuer", fields: [issuedByUserId], references: [id], onDelete: SetNull)
+  redeemedBy          User?        @relation("CouponRedeemer", fields: [redeemedByUserId], references: [id], onDelete: SetNull)
+  redeemedAppointment Appointment? @relation("CouponRedeemedAppointment", fields: [redeemedAppointmentId], references: [id], onDelete: SetNull)
+
+  @@unique([clientId, rewardRuleId])
+  @@unique([clientId, promotionId])
+  @@index([clientId, status, createdAt])
+  @@index([rewardRuleId])
+  @@index([promotionId])
+  @@map("client_coupons")
+}
+
+enum CalculatorOptionKind {
+  TECHNIQUE
+  LENGTH
+  DECORATION
+  EXTRA
+}
+
+enum CalculatorPricingMode {
+  FIXED
+  PER_UNIT
+}
+
+model CalculatorOption {
+  id              String                @id @default(uuid()) @db.Uuid
+  kind            CalculatorOptionKind
+  code            String                @unique
+  name            String
+  description     String?
+  iconText        String?               @map("icon_text")
+  iconObjectKey   String?               @map("icon_object_key")
+  iconMimeType    String?               @map("icon_mime_type")
+  priceCents      Int                   @default(0) @map("price_cents")
+  durationMinutes Int                   @default(0) @map("duration_minutes")
+  pricingMode     CalculatorPricingMode @default(FIXED) @map("pricing_mode")
+  maxQuantity     Int                   @default(1) @map("max_quantity")
+  parentOptionId  String?               @map("parent_option_id") @db.Uuid
+  active          Boolean               @default(true)
+  sortOrder       Int                   @default(0) @map("sort_order")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+
+  parent     CalculatorOption?  @relation("CalculatorOptionHierarchy", fields: [parentOptionId], references: [id], onDelete: SetNull)
+  children   CalculatorOption[] @relation("CalculatorOptionHierarchy")
+  selections QuoteSelection[]
+
+  @@index([kind, active, sortOrder])
+  @@index([parentOptionId])
+  @@map("calculator_options")
+}
+
+model CatalogDesign {
+  id              String   @id @default(uuid()) @db.Uuid
+  title           String
+  description     String
+  priceCents      Int      @map("price_cents")
+  durationMinutes Int      @map("duration_minutes")
+  technique       String
+  nailLength      String?  @map("nail_length")
+  categories      String[] @default([])
+  published       Boolean  @default(false)
+  featured        Boolean  @default(false)
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  createdBy    User                 @relation("CreatedCatalogDesigns", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  images       CatalogDesignImage[]
+  favorites    CatalogFavorite[]
+  appointments Appointment[]
+
+  @@index([published, featured, sortOrder])
+  @@index([technique])
+  @@map("catalog_designs")
+}
+
+model CatalogDesignImage {
+  id        String   @id @default(uuid()) @db.Uuid
+  designId  String   @map("design_id") @db.Uuid
+  objectKey String   @map("object_key")
+  mimeType  String   @map("mime_type")
+  filename  String
+  sizeBytes Int      @map("size_bytes")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  design CatalogDesign @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  @@index([designId, sortOrder])
+  @@map("catalog_design_images")
+}
+
+model CatalogFavorite {
+  userId    String   @map("user_id") @db.Uuid
+  designId  String   @map("design_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  design CatalogDesign @relation(fields: [designId], references: [id], onDelete: Cascade)
+
+  @@id([userId, designId])
+  @@index([designId])
+  @@map("catalog_favorites")
+}
+
+enum QuoteStatus {
+  PENDING_REVIEW
+  IN_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model CustomQuote {
+  id                       String      @id @default(uuid()) @db.Uuid
+  clientId                 String      @map("client_id") @db.Uuid
+  preferredTechnicianId    String?     @map("preferred_technician_id") @db.Uuid
+  assignedTechnicianId     String?     @map("assigned_technician_id") @db.Uuid
+  reviewedByUserId         String?     @map("reviewed_by_user_id") @db.Uuid
+  status                   QuoteStatus @default(PENDING_REVIEW)
+  noDesign                 Boolean     @default(false) @map("no_design")
+  estimatedPriceCents      Int         @map("estimated_price_cents")
+  estimatedDurationMinutes Int         @map("estimated_duration_minutes")
+  confirmedPriceCents      Int?        @map("confirmed_price_cents")
+  confirmedDurationMinutes Int?        @map("confirmed_duration_minutes")
+  clientNotes              String?     @map("client_notes")
+  reviewerComments         String?     @map("reviewer_comments")
+  priceBreakdown           Json        @map("price_breakdown")
+  claimedAt                DateTime?   @map("claimed_at") @db.Timestamptz
+  reviewedAt               DateTime?   @map("reviewed_at") @db.Timestamptz
+  createdAt                DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  client              User             @relation("ClientQuotes", fields: [clientId], references: [id], onDelete: Cascade)
+  preferredTechnician User?            @relation("PreferredTechnicianQuotes", fields: [preferredTechnicianId], references: [id], onDelete: SetNull)
+  assignedTechnician  User?            @relation("AssignedTechnicianQuotes", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
+  reviewedBy          User?            @relation("ReviewedQuotes", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  selections          QuoteSelection[]
+  images              QuoteImage[]
+  appointments        Appointment[]
+
+  @@index([clientId, createdAt])
+  @@index([status, assignedTechnicianId, createdAt])
+  @@index([preferredTechnicianId, status])
+  @@map("custom_quotes")
+}
+
+model QuoteSelection {
+  id             String   @id @default(uuid()) @db.Uuid
+  quoteId        String   @map("quote_id") @db.Uuid
+  optionId       String   @map("option_id") @db.Uuid
+  quantity       Int      @default(1)
+  unitPriceCents Int      @map("unit_price_cents")
+  optionName     String   @map("option_name")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  quote  CustomQuote      @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  option CalculatorOption @relation(fields: [optionId], references: [id], onDelete: Restrict)
+
+  @@unique([quoteId, optionId])
+  @@index([optionId])
+  @@map("quote_selections")
+}
+
+model QuoteImage {
+  id        String   @id @default(uuid()) @db.Uuid
+  quoteId   String   @map("quote_id") @db.Uuid
+  objectKey String   @map("object_key")
+  mimeType  String   @map("mime_type")
+  filename  String
+  sizeBytes Int      @map("size_bytes")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  quote CustomQuote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([quoteId, sortOrder])
+  @@map("quote_images")
+}

@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <title>Manual técnico y de operación — Dear Angel</title>
+    <style>
+      :root {
+        --ink: #382d32;
+        --rose: #a95f78;
+        --cream: #fffaf2;
+        --line: #ead7d6;
+        --code: #332a30;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #eee;
+        color: var(--ink);
+        font-family: Arial, sans-serif;
+        line-height: 1.45;
+      }
+      .page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 8mm auto;
+        padding: 17mm;
+        background: var(--cream);
+        position: relative;
+      }
+      h1,
+      h2,
+      h3 {
+        font-family: Georgia, serif;
+        line-height: 1.1;
+        margin: 0 0 5mm;
+      }
+      h1 {
+        font-size: 30pt;
+      }
+      h2 {
+        font-size: 22pt;
+      }
+      h3 {
+        font-size: 14pt;
+        color: var(--rose);
+        margin-top: 6mm;
+      }
+      p,
+      li,
+      td,
+      th {
+        font-size: 9.7pt;
+      }
+      .eyebrow {
+        display: block;
+        color: var(--rose);
+        font-weight: bold;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        margin-bottom: 5mm;
+      }
+      .cover {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        background: linear-gradient(145deg, #fffaf2, #f4e4eb);
+      }
+      .cover h1 {
+        margin-top: 50mm;
+        max-width: 160mm;
+      }
+      .lead {
+        font-size: 13pt;
+      }
+      .meta {
+        border-top: 1px solid var(--rose);
+        padding-top: 5mm;
+      }
+      .code {
+        background: var(--code);
+        color: #fff7fb;
+        border-radius: 3mm;
+        padding: 4mm;
+        margin: 3mm 0;
+        font:
+          8.4pt/1.5 Consolas,
+          monospace;
+        white-space: pre-wrap;
+        break-inside: avoid;
+      }
+      .note {
+        border-left: 3px solid #c5a35e;
+        background: white;
+        padding: 3mm 4mm;
+        margin: 4mm 0;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 4mm 0;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 2.5mm;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        color: var(--rose);
+        text-transform: uppercase;
+        font-size: 8pt;
+      }
+      .footer {
+        position: absolute;
+        bottom: 8mm;
+        left: 17mm;
+        right: 17mm;
+        display: flex;
+        justify-content: space-between;
+        color: #90747d;
+        font-size: 8pt;
+      }
+      .check li {
+        margin: 2mm 0;
+      }
+      code {
+        background: #f2e5ea;
+        padding: 0.5mm 1mm;
+        border-radius: 1mm;
+      }
+      @media print {
+        body {
+          background: white;
+        }
+        .page {
+          margin: 0;
+          break-after: page;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="page cover">
+      <div class="eyebrow">Dear Angel Nail Studio</div>
+      <div>
+        <span class="eyebrow">Entrega técnica</span>
+        <h1>Manual técnico y de operación</h1>
+        <p class="lead">
+          Instalación Docker, seguridad, respaldos, restauración, pruebas y mantenimiento.
+        </p>
+      </div>
+      <div class="meta"><strong>Versión 1.0 · 12 de agosto de 2026 · America/Merida</strong></div>
+    </section>
+    <section class="page">
+      <span class="eyebrow">01 · Arquitectura</span>
+      <h2>Componentes y responsabilidades</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Servicio</th>
+            <th>Responsabilidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>web</td>
+            <td>Next.js, interfaz responsive, proxy de mismo origen y PWA.</td>
+          </tr>
+          <tr>
+            <td>api</td>
+            <td>NestJS, permisos, reglas de negocio, migraciones y auditoría.</td>
+          </tr>
+          <tr>
+            <td>worker</td>
+            <td>Base para trabajos BullMQ y comprobación de Redis.</td>
+          </tr>
+          <tr>
+            <td>postgres</td>
+            <td>Fuente de verdad; restricciones SQL evitan traslapes.</td>
+          </tr>
+          <tr>
+            <td>redis</td>
+            <td>Colas y coordinación asíncrona.</td>
+          </tr>
+          <tr>
+            <td>minio</td>
+            <td>Catálogo, cotizaciones, marca y comprobantes privados.</td>
+          </tr>
+          <tr>
+            <td>backup</td>
+            <td>Copia semanal consistente de PostgreSQL y MinIO con checksum.</td>
+          </tr>
+          <tr>
+            <td>stable-preview</td>
+            <td>Túnel HTTPS fijo de ngrok para demostración.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        La solución es un monolito modular en TypeScript. Las reglas críticas viven en API y base de
+        datos; el frontend no es el único control.
+      </p>
+      <h3>Datos persistentes</h3>
+      <p>
+        Los volúmenes <code>postgres_data</code>, <code>redis_data</code> y
+        <code>minio_data</code> sobreviven a recreaciones. La carpeta <code>backups/</code> contiene
+        archivos portables; está ignorada por Git.
+      </p>
+      <div class="note">
+        <strong>No ejecutar</strong> <code>docker compose down -v</code> salvo que se quiera borrar
+        deliberadamente toda la información local.
+      </div>
+      <div class="footer"><span>Dear Angel · Operación</span><span>2</span></div>
+    </section>
+    <section class="page">
+      <span class="eyebrow">02 · Puesta en marcha</span>
+      <h2>Instalación reproducible</h2>
+      <h3>Requisitos</h3>
+      <ul>
+        <li>Windows 10/11 con WSL 2.</li>
+        <li>Docker Desktop en contenedores Linux.</li>
+        <li>8 GB de RAM recomendados.</li>
+        <li>Puertos 3000, 3001, 3002, 5432, 6379, 9000 y 9001 disponibles.</li>
+      </ul>
+      <h3>Inicio local</h3>
+      <div class="code">
+        Copy-Item .env.example .env docker compose up -d --build docker compose ps Invoke-WebRequest
+        http://localhost:3000
+      </div>
+      <p>
+        La API aplica migraciones automáticamente antes de iniciar. Todos los servicios deben
+        mostrar <code>healthy</code>, excepto ngrok, que no define health check propio.
+      </p>
+      <h3>Enlace fijo</h3>
+      <p>
+        Configura <code>NGROK_AUTHTOKEN</code>, <code>NGROK_DOMAIN</code> y
+        <code>PUBLIC_APP_URL=https://...</code>. Después:
+      </p>
+      <div class="code">
+        docker compose --profile stable-preview up -d docker compose logs stable-preview
+      </div>
+      <h3>Datos de demostración</h3>
+      <div class="code">$env:DEMO_DATA_ENABLED='true' npm run demo:seed</div>
+      <p>
+        El seed es explícito e idempotente. Crea dos manicuristas, tres clientes, 15 citas, tres
+        anticipos, visitas y un cupón. No se activa solo.
+      </p>
+      <div class="footer"><span>Dear Angel · Operación</span><span>3</span></div>
+    </section>
+    <section class="page">
+      <span class="eyebrow">03 · Configuración segura</span>
+      <h2>Entorno e integraciones</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Grupo</th>
+            <th>Variables clave</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Base</td>
+            <td>POSTGRES_PASSWORD, MINIO_ROOT_PASSWORD, OTP_PEPPER</td>
+          </tr>
+          <tr>
+            <td>Aplicación</td>
+            <td>PUBLIC_APP_URL, CORS_ORIGIN, SESSION_TTL_DAYS</td>
+          </tr>
+          <tr>
+            <td>WhatsApp</td>
+            <td>PHONE_NUMBER_ID, ACCESS_TOKEN y plantillas aprobadas</td>
+          </tr>
+          <tr>
+            <td>Correo</td>
+            <td>SMTP_HOST, SMTP_USER, SMTP_APP_PASSWORD</td>
+          </tr>
+          <tr>
+            <td>Google</td>
+            <td>CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, INTEGRATION_ENCRYPTION_KEY</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        En producción la API rechaza secretos locales, CORS comodín, URLs públicas sin HTTPS y
+        credenciales incompletas de una integración habilitada.
+      </p>
+      <h3>Controles implementados</h3>
+      <ul class="check">
+        <li>Contraseñas scrypt con sal aleatoria.</li>
+        <li>Sesiones HttpOnly, SameSite=Lax y Secure en producción.</li>
+        <li>Roles en backend y rutas administrativas exclusivas.</li>
+        <li>Límites de intentos para registro, login y recuperación.</li>
+        <li>Comprobantes sin URL pública; autorización por cada descarga.</li>
+        <li>Tipos y tamaños limitados; SVG no permitido para cargas administrables.</li>
+        <li>CSP, frame-ancestors, nosniff, HSTS, Referrer y Permissions Policy.</li>
+        <li>Exportaciones neutralizadas contra fórmulas de hoja de cálculo.</li>
+        <li>Tokens de Google cifrados con AES-256-GCM.</li>
+      </ul>
+      <div class="footer"><span>Dear Angel · Operación</span><span>4</span></div>
+    </section>
+    <section class="page">
+      <span class="eyebrow">04 · Respaldo</span>
+      <h2>Copia, verificación y restauración</h2>
+      <p>
+        El contenedor <code>backup</code> genera una copia al iniciar y después cada 604800
+        segundos. Conserva 90 días por defecto. Cada archivo incluye dump, objetos, manifiesto,
+        hashes internos y checksum externo.
+      </p>
+      <h3>Crear y verificar</h3>
+      <div class="code">
+        npm run backup:now powershell -File scripts/verify-backup.ps1 ` -BackupFile
+        backups/dear-angel-FECHA.tar.gz npm run backup:test-restore
+      </div>
+      <p>
+        <code>backup:test-restore</code> crea una base y bucket temporales con nombres validados,
+        restaura todo, compara usuarios, migraciones y archivos, y elimina únicamente esos destinos
+        temporales.
+      </p>
+      <h3>Restaurar operación</h3>
+      <div class="code">
+        powershell -File scripts/restore-backup.ps1 ` -BackupFile backups/dear-angel-FECHA.tar.gz `
+        -ConfirmRestore
+      </div>
+      <div class="note">
+        <strong>Destructivo:</strong> la restauración operativa reemplaza la base y el bucket
+        actuales. Primero conserva otra copia, verifica el archivo y confirma el objetivo exacto.
+      </div>
+      <h3>Retención de comprobantes</h3>
+      <p>
+        La API revisa cada seis horas los comprobantes con un año cumplido. El objeto se elimina de
+        MinIO y la base conserva la evidencia de purga, sin borrar la cita o la decisión del
+        anticipo.
+      </p>
+      <div class="footer"><span>Dear Angel · Operación</span><span>5</span></div>
+    </section>
+    <section class="page">
+      <span class="eyebrow">05 · Calidad</span>
+      <h2>Pruebas y liberación</h2>
+      <h3>Verificación diaria</h3>
+      <div class="code">
+        npm run typecheck npm run lint npm test npm run build npm audit --omit=dev
+      </div>
+      <h3>Prueba integrada</h3>
+      <div class="code">npm run test:e2e</div>
+      <p>
+        Comprueba portada, PWA, cabeceras, salud, sesiones de cliente/manicurista, permisos,
+        privacidad de comprobantes, cita manual a cualquier minuto, rechazo de traslape, dashboard,
+        cuatro reportes, CSV, XLSX y auditoría. Los registros temporales se limpian al terminar.
+      </p>
+      <h3>Lista antes de mostrar</h3>
+      <ul class="check">
+        <li>Todos los contenedores saludables.</li>
+        <li>Migraciones aplicadas.</li>
+        <li>Respaldo reciente verificado.</li>
+        <li>Enlace público HTTP 200.</li>
+        <li>Sin errores recientes en logs de API/web.</li>
+        <li>Vista móvil sin desbordamiento.</li>
+        <li>Credenciales demo diferentes de las reales.</li>
+      </ul>
+      <h3>Observabilidad local</h3>
+      <div class="code">
+        docker compose ps docker compose logs --tail 200 api web worker backup docker compose exec
+        postgres pg_isready
+      </div>
+      <div class="footer"><span>Dear Angel · Operación</span><span>6</span></div>
+    </section>
+    <section class="page">
+      <span class="eyebrow">06 · Incidentes</span>
+      <h2>Diagnóstico y recuperación</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Síntoma</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Docker no inicia tras apagar Windows</td>
+            <td>Reinicia WSL/Docker; si WSL no responde, reinicia Windows. No borres volúmenes.</td>
+          </tr>
+          <tr>
+            <td>El enlace no abre</td>
+            <td>Confirma que laptop, Docker, web y stable-preview estén encendidos.</td>
+          </tr>
+          <tr>
+            <td>API no está healthy</td>
+            <td>Revisa logs y salud de PostgreSQL, Redis y MinIO.</td>
+          </tr>
+          <tr>
+            <td>WhatsApp/correo falla</td>
+            <td>La operación interna permanece; revisa entregas y variables del proveedor.</td>
+          </tr>
+          <tr>
+            <td>Migración falla</td>
+            <td>
+              No edites el historial aplicado. Conserva logs y restaura en entorno aislado antes de
+              intervenir.
+            </td>
+          </tr>
+          <tr>
+            <td>Archivo de respaldo falla hash</td>
+            <td>No lo restaures. Usa la copia anterior verificada.</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Frecuencia recomendada</h3>
+      <ul>
+        <li>Diario: health y entregas fallidas.</li>
+        <li>Semanal: confirmar nuevo respaldo y espacio disponible.</li>
+        <li>Mensual: ejecutar restauración aislada y actualizar dependencias con revisión.</li>
+        <li>Antes de cada entrega: suite completa, capturas y ensayo Docker.</li>
+      </ul>
+      <h3>Documentos relacionados</h3>
+      <ul>
+        <li>README.md</li>
+        <li>ROADMAP.md y PROGRESO.md</li>
+        <li>ARQUITECTURA.md y DECISIONES.md</li>
+        <li>ESPECIFICACION_REQUERIMIENTOS_CASOS_USO.pdf</li>
+        <li>MANUAL_USUARIO.pdf</li>
+      </ul>
+      <div class="footer"><span>Dear Angel · Operación</span><span>7</span></div>
+    </section>
+  </body>
+</html>

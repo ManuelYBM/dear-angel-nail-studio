@@ -1,0 +1,45 @@
+{
+  "name": "dear-angel-nail-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agenda, catálogo y operación profesional para Dear Angel Nail Studio.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.9.0"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "dev": "concurrently -n web,api,worker -c magenta,blue,yellow \"npm run dev -w @dear-angel/web\" \"npm run start:dev -w @dear-angel/api\" \"npm run start:dev -w @dear-angel/worker\"",
+    "dev:web": "npm run dev -w @dear-angel/web",
+    "dev:api": "npm run start:dev -w @dear-angel/api",
+    "dev:worker": "npm run start:dev -w @dear-angel/worker",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "npm run test --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "npm run db:generate -w @dear-angel/api",
+    "db:migrate": "npm run db:migrate -w @dear-angel/api",
+    "db:deploy": "npm run db:deploy -w @dear-angel/api",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "backup:now": "powershell -ExecutionPolicy Bypass -File scripts/backup-now.ps1",
+    "backup:test-restore": "powershell -ExecutionPolicy Bypass -File scripts/test-restore.ps1",
+    "demo:seed": "node scripts/seed-demo.mjs",
+    "test:e2e": "node scripts/e2e.mjs",
+    "test:clean-install": "powershell -ExecutionPolicy Bypass -File scripts/rehearse-clean-install.ps1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "concurrently": "10.0.4",
+    "eslint": "10.8.1",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.67.0"
+  }
+}

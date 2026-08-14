@@ -1,0 +1,19 @@
+UPDATE "notification_templates"
+SET "title_template" = '{{titulo}}',
+    "body_template" = '{{mensaje}}',
+    "updated_at" = CURRENT_TIMESTAMP
+WHERE ("key" = 'appointment_update'
+       AND "title_template" = 'Actualización de tu cita'
+       AND "body_template" = 'Hay novedades en tu cita. Consulta los detalles en Dear Angel.')
+   OR ("key" = 'appointment_reminder'
+       AND "title_template" = 'Recordatorio de cita'
+       AND "body_template" = 'Tu cita se acerca. Consulta la hora y los detalles en Dear Angel.')
+   OR ("key" = 'quote_update'
+       AND "title_template" = 'Actualización de cotización'
+       AND "body_template" = 'Tu cotización tiene novedades. Consulta Dear Angel.')
+   OR ("key" = 'payment_update'
+       AND "title_template" = 'Actualización de anticipo'
+       AND "body_template" = 'Tu anticipo tiene novedades. Consulta Dear Angel.')
+   OR ("key" = 'coupon_unlocked'
+       AND "title_template" = 'Tienes un nuevo cupón'
+       AND "body_template" = 'Desbloqueaste un beneficio en Dear Angel.');

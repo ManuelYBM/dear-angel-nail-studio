@@ -1,0 +1,242 @@
+.menu,
+.login,
+.loading {
+  flex: 0 0 auto;
+}
+
+.menu {
+  position: relative;
+  z-index: 20;
+}
+
+.account {
+  display: inline-flex;
+  max-width: 245px;
+  min-height: 46px;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid rgb(168 104 125 / 16%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 68%);
+  color: #49383f;
+  box-shadow: 0 8px 24px rgb(73 56 63 / 6%);
+  cursor: pointer;
+  list-style: none;
+}
+
+.account::-webkit-details-marker {
+  display: none;
+}
+.account::marker {
+  content: '';
+}
+
+.account:focus-visible {
+  outline: 2px solid #a8687d;
+  outline-offset: 3px;
+}
+
+.avatar {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f5d6dc, #e8e0f2);
+  color: #a8687d;
+  font-family: Georgia, serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.identity {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.identity strong,
+.identity small,
+.menuHeading strong,
+.menuHeading span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity strong {
+  font-size: 12px;
+  font-weight: 700;
+}
+.identity small {
+  color: #8d747e;
+  font-size: 9px;
+}
+.chevron {
+  color: #9a7f89;
+  font-size: 14px;
+  transition: transform 160ms ease;
+}
+.badge {
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  place-items: center;
+  border-radius: 999px;
+  background: #a8687d;
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+}
+.menu[open] .chevron {
+  transform: rotate(180deg);
+}
+
+.popover {
+  width: min(250px, calc(100vw - 24px));
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  padding: 10px;
+  border: 1px solid rgb(168 104 125 / 16%);
+  border-radius: 20px;
+  background: rgb(255 253 249 / 96%);
+  box-shadow: 0 22px 60px rgb(73 56 63 / 18%);
+  backdrop-filter: blur(20px);
+}
+
+.menuHeading {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px 12px;
+  border-bottom: 1px solid rgb(168 104 125 / 12%);
+}
+
+.menuHeading strong {
+  color: #49383f;
+  font-size: 13px;
+}
+.menuHeading span {
+  color: #8d747e;
+  font-size: 10px;
+}
+.menuLinks {
+  display: grid;
+  padding: 7px 0;
+}
+
+.menuLinks a,
+.logout {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #5e4851;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menuLinks a:hover,
+.logout:hover {
+  background: rgb(232 224 242 / 46%);
+  color: #7f668f;
+}
+.logout {
+  border-top: 1px solid rgb(168 104 125 / 12%);
+  border-radius: 0 0 12px 12px;
+  color: #a4516d;
+}
+
+.login {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  padding: 0 17px;
+  border-radius: 999px;
+  background: #49383f;
+  color: #fffaf2 !important;
+  font-size: 12px !important;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.homeMobileLogin {
+  display: none;
+}
+
+.loading {
+  display: inline-block;
+  width: 112px;
+  height: 42px;
+  border-radius: 999px;
+  background: linear-gradient(
+    100deg,
+    rgb(255 255 255 / 40%),
+    rgb(255 255 255 / 78%),
+    rgb(255 255 255 / 40%)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .homeMobileLogin {
+    display: inline-flex;
+  }
+  .account {
+    max-width: 150px;
+    min-height: 40px;
+    padding: 4px 7px 4px 4px;
+    gap: 7px;
+  }
+  .avatar {
+    width: 32px;
+    height: 32px;
+  }
+  .identity strong {
+    font-size: 10px;
+  }
+  .identity small {
+    font-size: 8px;
+  }
+  .compact {
+    min-height: 36px;
+  }
+  .loading {
+    width: 82px;
+    height: 38px;
+  }
+}
+
+@media (max-width: 380px) {
+  .account {
+    max-width: 126px;
+  }
+  .identity small,
+  .chevron {
+    display: none;
+  }
+  .badge {
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    font-size: 8px;
+  }
+}

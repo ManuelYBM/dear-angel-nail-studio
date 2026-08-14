@@ -1,0 +1,7 @@
+services:
+  api:
+    image: dear-angel-api:latest
+  worker:
+    image: dear-angel-worker:latest
+  web:
+    image: dear-angel-web:latest

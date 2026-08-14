@@ -1,0 +1,382 @@
+.summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(130px, 0.7fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.summary > div {
+  min-height: 138px;
+  padding: 22px;
+  border: 1px solid rgb(168 104 125 / 14%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 76%);
+  box-shadow: 0 18px 45px rgb(73 56 63 / 8%);
+}
+
+.summary > div:first-child {
+  background:
+    radial-gradient(circle at 86% 20%, rgb(255 255 255 / 70%), transparent 24%),
+    linear-gradient(135deg, #f4d8de, #e8e0f2);
+}
+
+.summary span,
+.sectionLabel {
+  color: #a8687d;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.summary strong {
+  display: block;
+  margin-top: 10px;
+  color: #49383f;
+  font-family: Georgia, serif;
+  font-size: 38px;
+  font-weight: 400;
+}
+
+.summary p {
+  margin: 8px 0 0;
+  color: #705c64;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.journeySection,
+.couponSection,
+.historySection {
+  margin-top: 28px;
+}
+
+.journeySection h2,
+.couponSection h2,
+.historySection h2 {
+  margin: 7px 0 18px;
+  color: #49383f;
+  font-family: Georgia, serif;
+  font-size: 28px;
+  font-weight: 400;
+}
+
+.journey {
+  position: relative;
+  display: grid;
+  gap: 13px;
+}
+
+.journey::before {
+  position: absolute;
+  top: 24px;
+  bottom: 24px;
+  left: 27px;
+  width: 1px;
+  background: linear-gradient(#d8b26f, #cbbbdc);
+  content: '';
+}
+
+.milestone {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 96px;
+  padding: 16px 18px 16px 0;
+  overflow: hidden;
+  border: 1px solid rgb(168 104 125 / 12%);
+  border-radius: 22px;
+  background: rgb(255 255 255 / 72%);
+}
+
+.milestoneIcon {
+  z-index: 1;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  margin-left: 6px;
+  place-items: center;
+  border: 1px solid rgb(169 123 54 / 32%);
+  border-radius: 50%;
+  background: #fffaf2;
+  color: #a97b36;
+  font-size: 19px;
+}
+
+.milestone h3,
+.milestone p {
+  margin: 0;
+}
+
+.milestone h3 {
+  color: #49383f;
+  font-family: Georgia, serif;
+  font-size: 19px;
+  font-weight: 400;
+}
+
+.milestone p {
+  margin-top: 5px;
+  color: #705c64;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.milestone em {
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: #f8f0e4;
+  color: #806071;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.locked {
+  opacity: 0.66;
+}
+
+.available {
+  border-color: rgb(169 123 54 / 26%);
+  background: linear-gradient(135deg, rgb(255 250 242 / 94%), rgb(245 214 220 / 68%));
+}
+
+.redeemed .milestoneIcon {
+  border-color: transparent;
+  background: #e8e0f2;
+  color: #7f668f;
+}
+
+.couponGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.coupon {
+  position: relative;
+  min-height: 180px;
+  padding: 25px;
+  overflow: hidden;
+  border: 1px solid rgb(169 123 54 / 28%);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 100% 0%, #e8e0f2 0 21%, transparent 22%),
+    linear-gradient(145deg, #fffaf2, #f5d6dc);
+}
+
+.coupon::after {
+  position: absolute;
+  right: -22px;
+  bottom: -22px;
+  width: 90px;
+  height: 90px;
+  border: 1px solid rgb(169 123 54 / 24%);
+  border-radius: 50%;
+  content: '';
+}
+
+.coupon > span {
+  color: #a97b36;
+  font-size: 30px;
+}
+
+.coupon h3 {
+  margin: 12px 0 7px;
+  color: #49383f;
+  font-family: Georgia, serif;
+  font-size: 23px;
+  font-weight: 400;
+}
+
+.coupon p,
+.coupon small {
+  color: #705c64;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.couponUsed {
+  filter: saturate(0.55);
+  opacity: 0.72;
+}
+
+.historyList,
+.clientList,
+.adminList {
+  display: grid;
+  gap: 10px;
+}
+
+.historyList > div,
+.clientButton,
+.adminItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 15px;
+  border: 1px solid rgb(168 104 125 / 12%);
+  border-radius: 17px;
+  background: rgb(255 255 255 / 70%);
+  color: #49383f;
+  text-align: left;
+}
+
+.historyList small,
+.clientButton small,
+.adminItem small {
+  display: block;
+  margin-top: 4px;
+  color: #8b777f;
+  font-size: 10px;
+}
+
+.historyList strong {
+  color: #a8687d;
+}
+
+.staffLayout,
+.adminLayout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.65fr) minmax(0, 1.35fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.searchBox {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid rgb(168 104 125 / 13%);
+  border-radius: 23px;
+  background: rgb(255 255 255 / 72%);
+}
+
+.searchBox input,
+.adminForm input,
+.adminForm textarea,
+.adminForm select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 13px;
+  border: 1px solid rgb(112 92 100 / 20%);
+  border-radius: 13px;
+  background: #fffaf2;
+  color: #49383f;
+  font: inherit;
+}
+
+.adminForm textarea {
+  padding-block: 12px;
+}
+
+.clientButton {
+  width: 100%;
+  cursor: pointer;
+}
+
+.selectedClient {
+  border-color: #a8687d;
+  background: #f8edf3;
+}
+
+.staffProfile,
+.adminForm,
+.adminColumn {
+  padding: 22px;
+  border: 1px solid rgb(168 104 125 / 13%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 74%);
+}
+
+.staffProfile h2,
+.adminColumn h2,
+.adminForm h2 {
+  margin: 0 0 14px;
+  color: #49383f;
+  font-family: Georgia, serif;
+  font-size: 25px;
+  font-weight: 400;
+}
+
+.redeemRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 0.7fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 13px;
+  border: 1px solid rgb(168 104 125 / 12%);
+  border-radius: 17px;
+  background: #fffaf2;
+}
+
+.redeemRow select {
+  min-height: 42px;
+}
+
+.adminLayout {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.adminForm {
+  display: grid;
+  gap: 12px;
+}
+.adminForm label {
+  display: grid;
+  gap: 6px;
+  color: #705c64;
+  font-size: 11px;
+  font-weight: 700;
+}
+.adminList {
+  margin-top: 14px;
+}
+.adminItem {
+  align-items: flex-start;
+}
+.adminItem button {
+  color: #a8687d;
+  cursor: pointer;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (max-width: 800px) {
+  .summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .summary > div:first-child {
+    grid-column: 1 / -1;
+  }
+  .staffLayout,
+  .adminLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .summary {
+    grid-template-columns: 1fr;
+  }
+  .summary > div:first-child {
+    grid-column: auto;
+  }
+  .couponGrid {
+    grid-template-columns: 1fr;
+  }
+  .milestone {
+    grid-template-columns: 50px minmax(0, 1fr);
+  }
+  .milestone em {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .redeemRow {
+    grid-template-columns: 1fr;
+  }
+}

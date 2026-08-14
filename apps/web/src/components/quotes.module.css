@@ -1,0 +1,251 @@
+.list {
+  display: grid;
+  gap: 20px;
+}
+.quoteCard {
+  padding: 26px;
+  border: 1px solid rgb(168 104 125 / 14%);
+  border-radius: 26px;
+  background: rgb(255 255 255 / 78%);
+  box-shadow: 0 18px 50px rgb(73 56 63 / 8%);
+}
+.quoteCard > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.quoteCard header > div:first-child > span {
+  display: inline-block;
+  padding: 6px 9px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.PENDING_REVIEW {
+  background: #f8edd7;
+  color: #936e36;
+}
+.IN_REVIEW {
+  background: #eae2f0;
+  color: #725b80;
+}
+.APPROVED {
+  background: #e2f1e7;
+  color: #477359;
+}
+.REJECTED {
+  background: #f7dfe3;
+  color: #a65264;
+}
+.quoteCard h2 {
+  margin: 10px 0 3px;
+  color: #49383f;
+  font-family: Georgia, serif;
+  font-size: 27px;
+  font-weight: 400;
+}
+.quoteCard header p {
+  margin: 0;
+  color: #7f6871;
+  font-size: 12px;
+}
+.quoteCard header > div:last-child {
+  display: grid;
+  align-content: start;
+  justify-items: end;
+}
+.quoteCard header small {
+  color: #a8687d;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.quoteCard header strong {
+  color: #a97b36;
+  font-family: Georgia, serif;
+  font-size: 25px;
+  font-weight: 400;
+}
+.quoteCard header > div:last-child span {
+  color: #7f6871;
+  font-size: 11px;
+}
+.quoteCard blockquote {
+  margin: 18px 0;
+  padding: 13px 16px;
+  border-left: 2px solid #d6b97e;
+  background: rgb(255 250 242 / 65%);
+  color: #705c64;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 15px 0;
+}
+.breakdown span {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #f3eaf2;
+  color: #745f7f;
+  font-size: 10px;
+}
+.photos {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+.photos img {
+  width: 88px;
+  height: 88px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+.approved {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 17px;
+  background: #edf5ef;
+  color: #54705e;
+  font-size: 12px;
+}
+.approved p {
+  flex-basis: 100%;
+  margin: 0;
+}
+.approved a {
+  margin-left: auto;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #5f816a;
+  color: white;
+  font-weight: 700;
+  text-decoration: none;
+}
+.review {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgb(168 104 125 / 13%);
+}
+.assignment {
+  display: flex;
+  gap: 9px;
+  margin-top: 18px;
+}
+.assignment select {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgb(112 92 100 / 20%);
+  border-radius: 12px;
+  background: #fffaf2;
+  color: #49383f;
+}
+.assignment button {
+  padding: 10px 15px;
+  border-radius: 999px;
+  background: #7f668f;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+.review label {
+  display: grid;
+  gap: 6px;
+  color: #49383f;
+  font-size: 11px;
+  font-weight: 700;
+}
+.review label:nth-child(3) {
+  grid-column: 1 / -1;
+}
+.review input,
+.review textarea {
+  padding: 11px 12px;
+  border: 1px solid rgb(112 92 100 / 20%);
+  border-radius: 12px;
+  background: #fffaf2;
+  color: #49383f;
+  font: inherit;
+}
+.review > div {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 9px;
+}
+.review button {
+  padding: 11px 15px;
+  border-radius: 999px;
+  background: #a8687d;
+  color: white;
+  cursor: pointer;
+  font-weight: 700;
+}
+.review button:last-child {
+  border: 1px solid rgb(168 104 125 / 25%);
+  background: transparent;
+  color: #a8687d;
+}
+.empty {
+  display: grid;
+  padding: 50px;
+  place-items: center;
+  gap: 12px;
+  border: 1px dashed rgb(168 104 125 / 25%);
+  border-radius: 24px;
+  color: #705c64;
+}
+.empty strong {
+  color: #49383f;
+  font-family: Georgia, serif;
+  font-size: 24px;
+  font-weight: 400;
+}
+.empty a {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #a8687d;
+  color: #fff;
+  text-decoration: none;
+}
+@media (max-width: 600px) {
+  .quoteCard {
+    padding: 19px;
+  }
+  .quoteCard > header {
+    align-items: flex-start;
+  }
+  .quoteCard h2 {
+    font-size: 22px;
+  }
+  .approved a {
+    width: 100%;
+    margin-left: 0;
+    text-align: center;
+  }
+  .review {
+    grid-template-columns: 1fr;
+  }
+  .review label:nth-child(3),
+  .review > div {
+    grid-column: 1;
+  }
+  .review > div {
+    flex-direction: column;
+  }
+  .assignment {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,13 @@
+FROM minio/mc:latest AS minio-client
+
+FROM postgres:17-alpine
+
+RUN apk add --no-cache bash coreutils tzdata
+
+COPY --from=minio-client /usr/bin/mc /usr/local/bin/mc
+COPY docker/backup.sh docker/restore.sh docker/bucket-tool.sh /opt/dear-angel/
+
+RUN chmod 0555 /opt/dear-angel/backup.sh /opt/dear-angel/restore.sh /opt/dear-angel/bucket-tool.sh
+
+ENTRYPOINT ["/opt/dear-angel/backup.sh"]
+CMD ["daemon"]

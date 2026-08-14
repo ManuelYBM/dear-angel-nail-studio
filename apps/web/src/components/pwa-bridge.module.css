@@ -1,0 +1,81 @@
+.offline {
+  position: fixed;
+  z-index: 100;
+  top: 10px;
+  left: 50%;
+  padding: 9px 14px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #49383f;
+  color: #fffaf2;
+  box-shadow: 0 10px 30px rgb(73 56 63 / 22%);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.installWrap {
+  position: fixed;
+  z-index: 60;
+  right: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+.installButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid rgb(255 255 255 / 55%);
+  border-radius: 999px;
+  background: #49383f;
+  color: #fffaf2;
+  box-shadow: 0 14px 34px rgb(73 56 63 / 23%);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.installButton span {
+  color: #e6c489;
+  font-size: 18px;
+}
+
+.iosHint {
+  width: min(290px, calc(100vw - 32px));
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  padding: 16px 40px 16px 17px;
+  border: 1px solid rgb(168 104 125 / 15%);
+  border-radius: 18px;
+  background: rgb(255 253 249 / 97%);
+  color: #705c64;
+  box-shadow: 0 18px 50px rgb(73 56 63 / 18%);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.iosHint strong {
+  color: #49383f;
+}
+.iosHint button {
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  background: transparent;
+  color: #a8687d;
+  cursor: pointer;
+  font-size: 17px;
+}
+
+@media (max-width: 560px) {
+  .installWrap {
+    right: 12px;
+  }
+  .installButton {
+    min-height: 40px;
+    padding-inline: 13px;
+    font-size: 10px;
+  }
+}
