@@ -9,3 +9,7 @@ export function canReviewDeposit(depositStatus: string, appointmentStatus: strin
 export function confirmationCode(reference: string) {
   return `RES-${reference.replace(/^DA-/, '')}`;
 }
+
+export function paymentReviewActionUrl(decision: 'APPROVED' | 'REJECTED', appointmentId: string) {
+  return decision === 'APPROVED' ? '/agenda' : `/anticipo?appointmentId=${appointmentId}`;
+}

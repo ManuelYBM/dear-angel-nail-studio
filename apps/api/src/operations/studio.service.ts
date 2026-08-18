@@ -8,6 +8,7 @@ import { requestIp } from '../common/request-meta';
 import { AuditService } from '../identity/audit.service';
 import { PrismaService } from '../infrastructure/prisma.service';
 import { StorageService } from '../infrastructure/storage.service';
+import { readImageMetadata } from './image-metadata';
 import type { StudioSettingsDto } from './operations.dto';
 
 export interface BrandUpload {
@@ -164,6 +165,15 @@ export class StudioService {
     }
     if (file.size > 5 * 1024 * 1024)
       throw new BadRequestException('La imagen no puede superar 5 MB.');
+    const metadata = readImageMetadata(file.buffer);
+    if (!metadata || metadata.mimeType !== file.mimetype) {
+      throw new BadRequestException(
+        'El contenido no corresponde a una imagen PNG, JPG o WebP válida.',
+      );
+    }
+    if (kind === 'icon' && (metadata.width !== 512 || metadata.height !== 512)) {
+      throw new BadRequestException('El icono debe medir exactamente 512 × 512 píxeles.');
+    }
     return file;
   }
 

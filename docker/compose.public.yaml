@@ -1,0 +1,79 @@
+name: dear-angel-public
+
+services:
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD para publicar la plataforma}
+
+  minio:
+    environment:
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD para publicar la plataforma}
+
+  api:
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?Define DATABASE_URL con una contraseña codificada y segura}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD para publicar la plataforma}
+      CORS_ORIGIN: ${CORS_ORIGIN:?Define el origen HTTPS público}
+      OTP_PEPPER: ${OTP_PEPPER:?Define OTP_PEPPER con al menos 32 caracteres}
+      OTP_MOCK_DEBUG_ENABLED: 'false'
+      WHATSAPP_DEVELOPMENT_TEXT_OTP_RECIPIENTS: ''
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:?Define la URL HTTPS pública}
+      INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:?Define INTEGRATION_ENCRYPTION_KEY}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Define ADMIN_EMAIL}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?Define ADMIN_INITIAL_PASSWORD}
+      BACKGROUND_JOBS_MODE: worker
+      WORKER_SHARED_SECRET: ${WORKER_SHARED_SECRET:?Define WORKER_SHARED_SECRET con al menos 32 caracteres}
+      WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:?Confirma true o false explícitamente}
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-cloud}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      SMTP_ENABLED: ${SMTP_ENABLED:?Confirma true o false explícitamente}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
+
+  worker:
+    environment:
+      NODE_ENV: production
+      WORKER_SHARED_SECRET: ${WORKER_SHARED_SECRET:?Define WORKER_SHARED_SECRET con al menos 32 caracteres}
+
+  backup:
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD para publicar la plataforma}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD para publicar la plataforma}
+    volumes:
+      - ./backups/public:/backups
+
+  restore:
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD para publicar la plataforma}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:?Define MINIO_ROOT_PASSWORD para publicar la plataforma}
+    volumes:
+      - ./backups/public:/backups
+
+  preview:
+    image: cloudflare/cloudflared:latest
+    profiles: ['preview']
+    restart: unless-stopped
+    command: ['tunnel', '--no-autoupdate', '--protocol', 'http2', '--url', 'http://web:3000']
+    depends_on:
+      web:
+        condition: service_healthy
+
+  stable-preview:
+    image: ngrok/ngrok:latest
+    profiles: ['stable-preview']
+    restart: unless-stopped
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    command:
+      [
+        'http',
+        '--url=https://${NGROK_DOMAIN:-configure-your-domain.ngrok-free.app}',
+        '--log=stdout',
+        '--log-format=json',
+        'http://web:3000',
+      ]
+    depends_on:
+      web:
+        condition: service_healthy

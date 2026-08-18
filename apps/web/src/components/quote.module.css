@@ -182,7 +182,7 @@
 }
 .estimate {
   position: sticky;
-  top: 24px;
+  top: calc(var(--site-header-height) + 24px);
   padding: 28px;
   border: 1px solid rgb(169 123 54 / 23%);
   border-radius: 28px;

@@ -9,9 +9,9 @@ coverage/
 
 # Environment and secrets
 .env
-.env.local
-.env.*.local
+.env.*
 !.env.example
+!.env.public.example
 
 # Runtime data
 uploads/

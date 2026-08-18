@@ -7,7 +7,9 @@ import type { FormEvent } from 'react';
 
 import { apiFetch } from '@/lib/api';
 import type { ChallengeResult, CurrentUser } from '@/lib/api';
+import { verificationChallengeForStorage } from '@/lib/verification-storage';
 import { PasswordField } from './password-field';
+import { PhoneField } from './phone-field';
 import styles from './portal.module.css';
 
 export function RegisterForm() {
@@ -37,7 +39,10 @@ export function RegisterForm() {
           }),
         },
       );
-      sessionStorage.setItem('da_verification', JSON.stringify({ ...result.verification, phone }));
+      sessionStorage.setItem(
+        'da_verification',
+        JSON.stringify(verificationChallengeForStorage(result.verification)),
+      );
       router.push('/verificar');
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'No pudimos crear tu cuenta.');
@@ -53,27 +58,23 @@ export function RegisterForm() {
           <label htmlFor="fullName">Nombre completo</label>
           <input autoComplete="name" id="fullName" name="fullName" required />
         </div>
-        <div className={styles.gridTwo}>
+        <div className={styles.contactGrid}>
           <div className={styles.field}>
             <label htmlFor="sex">Sexo</label>
             <select defaultValue="PREFER_NOT_TO_SAY" id="sex" name="sex" required>
               <option value="FEMALE">Mujer</option>
               <option value="MALE">Hombre</option>
               <option value="OTHER">Otro</option>
-              <option value="PREFER_NOT_TO_SAY">Prefiero no responder</option>
+              <option value="PREFER_NOT_TO_SAY">No especificar</option>
             </select>
           </div>
-          <div className={styles.field}>
-            <label htmlFor="phone">WhatsApp</label>
-            <input
-              autoComplete="tel"
-              id="phone"
-              inputMode="tel"
-              name="phone"
-              placeholder="+52 999 123 4567"
-              required
-            />
-          </div>
+          <PhoneField
+            autoComplete="tel-national"
+            id="phone"
+            label="WhatsApp"
+            name="phone"
+            required
+          />
         </div>
         <div className={styles.gridTwo}>
           <PasswordField
@@ -100,7 +101,7 @@ export function RegisterForm() {
         </label>
         {error ? <div className={styles.error}>{error}</div> : null}
         <button className={styles.primaryButton} disabled={loading} type="submit">
-          {loading ? 'Preparando tu cuenta…' : 'Crear mi cuenta'}
+          {loading ? 'Preparando tu cuenta…' : 'Continuar y verificar'}
         </button>
         <div className={styles.formFooter}>
           <span>¿Ya tienes cuenta?</span>

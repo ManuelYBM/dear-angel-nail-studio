@@ -169,6 +169,7 @@ export class ScheduleService {
   }
 
   async removeOverride(technicianId: string, date: string) {
+    await this.assertTechnician(technicianId);
     this.time.assertDate(date);
     await this.prisma.scheduleDayOverride.deleteMany({
       where: { technicianId, date: this.time.databaseDate(date) },

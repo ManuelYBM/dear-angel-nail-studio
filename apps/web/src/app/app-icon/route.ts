@@ -1,16 +1,20 @@
-import { NextResponse } from 'next/server';
-
 const API_INTERNAL_URL = (process.env.API_INTERNAL_URL ?? 'http://localhost:3001/api').replace(
   /\/$/,
   '',
 );
 
-export async function GET(request: Request) {
+export async function GET() {
   const response = await fetch(`${API_INTERNAL_URL}/studio/icon`, { cache: 'no-store' }).catch(
     () => null,
   );
   if (!response?.ok || !response.body) {
-    return NextResponse.redirect(new URL('/brand/icon-placeholder.png', request.url), 307);
+    return new Response(null, {
+      status: 307,
+      headers: {
+        'Cache-Control': 'public, max-age=3600',
+        Location: '/brand/icon-placeholder.png',
+      },
+    });
   }
   return new Response(response.body, {
     headers: {

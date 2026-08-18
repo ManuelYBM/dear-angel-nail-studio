@@ -48,6 +48,7 @@ export class LoyaltyService {
       where: {
         role: 'CLIENT',
         status: { not: 'ARCHIVED' },
+        registrationExpiresAt: null,
         ...(query.search
           ? {
               OR: [
@@ -345,7 +346,7 @@ export class LoyaltyService {
 
   private async profile(clientId: string) {
     const client = await this.prisma.user.findFirst({
-      where: { id: clientId, role: 'CLIENT' },
+      where: { id: clientId, role: 'CLIENT', registrationExpiresAt: null },
       select: {
         id: true,
         fullName: true,
@@ -368,11 +369,13 @@ export class LoyaltyService {
       },
     });
     if (!client) throw new NotFoundException('No encontramos esta clienta.');
-    const rules = await this.prisma.rewardRule.findMany({
-      where: { active: true },
-      orderBy: { visitNumber: 'asc' },
-    });
-    const visitCount = totalVisits(client.visitEntries);
+    const [rules, visitCount] = await Promise.all([
+      this.prisma.rewardRule.findMany({
+        where: { active: true },
+        orderBy: { visitNumber: 'asc' },
+      }),
+      this.visitCount(this.prisma, clientId),
+    ]);
     const couponByRule = new Map(
       client.rewardCoupons
         .filter((coupon) => coupon.rewardRuleId)
@@ -471,7 +474,9 @@ export class LoyaltyService {
   }
 
   private async findClient(clientId: string) {
-    const client = await this.prisma.user.findFirst({ where: { id: clientId, role: 'CLIENT' } });
+    const client = await this.prisma.user.findFirst({
+      where: { id: clientId, role: 'CLIENT', registrationExpiresAt: null },
+    });
     if (!client) throw new NotFoundException('No encontramos esta clienta.');
     return client;
   }

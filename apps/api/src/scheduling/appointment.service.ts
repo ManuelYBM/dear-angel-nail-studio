@@ -26,6 +26,7 @@ import type {
   CreateManualAppointmentDto,
   RescheduleAppointmentDto,
 } from './scheduling.dto';
+import { canCloseAppointment } from './appointment.rules';
 import { ScheduleService } from './schedule.service';
 import { TimeService } from './time.service';
 
@@ -383,6 +384,7 @@ export class AppointmentService {
     await this.expireHolds();
     if (query.from) this.time.assertDate(query.from);
     if (query.to) this.time.assertDate(query.to);
+    const limit = query.limit ?? 300;
     const appointments = await this.prisma.appointment.findMany({
       where: {
         ...(user.role === 'CLIENT'
@@ -400,10 +402,19 @@ export class AppointmentService {
           : {}),
       },
       include: this.appointmentInclude,
-      orderBy: { startAt: 'asc' },
-      take: 300,
+      orderBy: [{ startAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      ...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
     });
-    return { items: appointments.map((appointment) => this.safeAppointment(appointment)) };
+    const hasMore = appointments.length > limit;
+    if (hasMore) appointments.pop();
+    const nextCursor = hasMore ? (appointments.at(-1)?.id ?? null) : null;
+    const policy = await this.schedules.getPolicy();
+    return {
+      items: appointments.reverse().map((appointment) => this.safeAppointment(appointment)),
+      nextCursor,
+      policy,
+    };
   }
 
   async reschedule(
@@ -440,6 +451,31 @@ export class AppointmentService {
     const endAt = addMinutes(startAt, appointment.durationMinutes);
     if (actor.role === 'CLIENT') this.assertPublicStart(startAt, policy);
     const technicianId = dto.technicianId ?? appointment.technicianId;
+    if (actor.role !== 'ADMIN' && technicianId !== appointment.technicianId) {
+      throw new ForbiddenException({
+        code: 'TECHNICIAN_REASSIGN_FORBIDDEN',
+        message: 'Solo la administradora puede reasignar una cita a otra manicurista.',
+      });
+    }
+    const [technician] = await this.schedules.activeTechnicians(technicianId);
+    if (!technician) {
+      throw new ConflictException({
+        code: 'TECHNICIAN_NOT_AVAILABLE',
+        message: 'La manicurista seleccionada no está activa o no está recibiendo citas.',
+      });
+    }
+    if (appointment.customQuoteId) {
+      const quote = await this.prisma.customQuote.findUnique({
+        where: { id: appointment.customQuoteId },
+        select: { assignedTechnicianId: true, status: true },
+      });
+      if (!quote || quote.status !== 'APPROVED' || quote.assignedTechnicianId !== technicianId) {
+        throw new ConflictException({
+          code: 'QUOTE_TECHNICIAN_REQUIRED',
+          message: 'Esta cita debe conservar a la manicurista que aprobó la cotización.',
+        });
+      }
+    }
     if (!(await this.schedules.isWithinAvailability(technicianId, startAt, endAt))) {
       throw new ConflictException({
         code: 'OUTSIDE_AVAILABILITY',
@@ -447,16 +483,31 @@ export class AppointmentService {
       });
     }
     try {
-      const updated = await this.prisma.appointment.update({
-        where: { id: appointment.id },
-        data: {
-          technicianId,
-          startAt,
-          endAt,
-          clientRescheduleCount:
-            actor.role === 'CLIENT' ? { increment: 1 } : appointment.clientRescheduleCount,
-        },
-        include: this.appointmentInclude,
+      const updated = await this.prisma.$transaction(async (tx) => {
+        const changed = await tx.appointment.updateMany({
+          where: {
+            id: appointment.id,
+            status: appointment.status,
+            updatedAt: appointment.updatedAt,
+          },
+          data: {
+            technicianId,
+            startAt,
+            endAt,
+            clientRescheduleCount:
+              actor.role === 'CLIENT' ? { increment: 1 } : appointment.clientRescheduleCount,
+          },
+        });
+        if (changed.count !== 1) {
+          throw new ConflictException({
+            code: 'APPOINTMENT_ALREADY_CHANGED',
+            message: 'La cita acaba de cambiar. Recarga la agenda antes de reprogramarla.',
+          });
+        }
+        return tx.appointment.findUniqueOrThrow({
+          where: { id: appointment.id },
+          include: this.appointmentInclude,
+        });
       });
       await this.audit.record({
         actorUserId: actor.id,
@@ -522,13 +573,25 @@ export class AppointmentService {
       });
     }
     const updated = await this.prisma.$transaction(async (tx) => {
-      const result = await tx.appointment.update({
-        where: { id: appointment.id },
+      const changed = await tx.appointment.updateMany({
+        where: {
+          id: appointment.id,
+          status: appointment.status,
+          updatedAt: appointment.updatedAt,
+        },
         data: { status: 'CANCELLED', cancelledAt: new Date() },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException({
+          code: 'APPOINTMENT_ALREADY_CHANGED',
+          message: 'La cita acaba de cambiar. Recarga la agenda antes de cancelarla.',
+        });
+      }
+      await this.payments.cancelForAppointment(tx, appointment.id);
+      return tx.appointment.findUniqueOrThrow({
+        where: { id: appointment.id },
         include: this.appointmentInclude,
       });
-      await this.payments.cancelForAppointment(tx, appointment.id);
-      return result;
     });
     await this.audit.record({
       actorUserId: actor.id,
@@ -575,16 +638,30 @@ export class AppointmentService {
     request: Request,
   ) {
     const appointment = await this.findAuthorized(actor, appointmentId, true);
-    const allowed = ['COMPLETED', 'NO_SHOW'].includes(status) && appointment.status === 'CONFIRMED';
-    if (!allowed) {
+    const transitionAllowed =
+      ['COMPLETED', 'NO_SHOW'].includes(status) && appointment.status === 'CONFIRMED';
+    if (!transitionAllowed) {
       throw new ConflictException({
         code: 'INVALID_APPOINTMENT_TRANSITION',
         message: 'Ese cambio no corresponde al estado actual de la cita.',
       });
     }
+    if (!canCloseAppointment(appointment.status, status, appointment.startAt, appointment.endAt)) {
+      throw new ConflictException({
+        code: status === 'COMPLETED' ? 'APPOINTMENT_NOT_FINISHED' : 'APPOINTMENT_NOT_STARTED',
+        message:
+          status === 'COMPLETED'
+            ? 'La cita solo puede marcarse atendida después de su hora de finalización.'
+            : 'La ausencia solo puede registrarse después de que comience la cita.',
+      });
+    }
     const updated = await this.prisma.$transaction(async (tx) => {
       const changed = await tx.appointment.updateMany({
-        where: { id: appointment.id, status: appointment.status },
+        where: {
+          id: appointment.id,
+          status: appointment.status,
+          updatedAt: appointment.updatedAt,
+        },
         data: {
           status,
           holdExpiresAt: status === 'CONFIRMED' ? null : appointment.holdExpiresAt,
@@ -697,7 +774,12 @@ export class AppointmentService {
   private async resolveClient(clientId?: string, clientPhone?: string) {
     if (clientId) {
       const client = await this.prisma.user.findFirst({
-        where: { id: clientId, role: 'CLIENT', status: { not: 'ARCHIVED' } },
+        where: {
+          id: clientId,
+          role: 'CLIENT',
+          status: { not: 'ARCHIVED' },
+          registrationExpiresAt: null,
+        },
       });
       if (!client) {
         throw new NotFoundException({
@@ -710,7 +792,12 @@ export class AppointmentService {
     if (!clientPhone) return null;
     const phone = this.phones.normalize(clientPhone);
     return this.prisma.user.findFirst({
-      where: { phone, role: 'CLIENT', status: { not: 'ARCHIVED' } },
+      where: {
+        phone,
+        role: 'CLIENT',
+        status: { not: 'ARCHIVED' },
+        registrationExpiresAt: null,
+      },
     });
   }
 

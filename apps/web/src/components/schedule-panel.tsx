@@ -263,6 +263,28 @@ export function SchedulePanel() {
     }
   }
 
+  async function removeOverride(item: ScheduleResponse['overrides'][number]) {
+    const date = item.date.slice(0, 10);
+    const technicianId = user?.role === 'ADMIN' ? selectedTechnician : '';
+    const path = technicianId
+      ? `/admin/scheduling/technicians/${technicianId}/overrides/${date}`
+      : `/scheduling/my/overrides/${date}`;
+    setError('');
+    setNotice('');
+    try {
+      const result = await apiFetch<{ warnings?: typeof warnings }>(path, { method: 'DELETE' });
+      setSchedule((current) =>
+        current
+          ? { ...current, overrides: current.overrides.filter((entry) => entry.id !== item.id) }
+          : current,
+      );
+      setWarnings(result.warnings ?? []);
+      setNotice('La fecha volvió a usar el horario semanal.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No pudimos eliminar esa excepción.');
+    }
+  }
+
   if (loading || !user) return <div className={styles.loading}>Preparando horarios…</div>;
   const editingGlobal = user.role === 'ADMIN' && !selectedTechnician;
 
@@ -446,8 +468,17 @@ export function SchedulePanel() {
               <div className={styles.overrideList}>
                 {schedule.overrides.map((item) => (
                   <div key={item.id}>
-                    <strong>{databaseDateLabel(item.date)}</strong>
-                    <span>{item.isClosed ? 'Cerrado' : 'Horario especial'}</span>
+                    <span>
+                      <strong>{databaseDateLabel(item.date)}</strong>
+                      <small>{item.isClosed ? 'Cerrado' : 'Horario especial'}</small>
+                    </span>
+                    <button
+                      aria-label={`Eliminar excepción del ${databaseDateLabel(item.date)}`}
+                      onClick={() => void removeOverride(item)}
+                      type="button"
+                    >
+                      Eliminar
+                    </button>
                   </div>
                 ))}
               </div>

@@ -2,7 +2,7 @@
 
 ## Dear Angel Nail Studio
 
-Este documento conserva las decisiones confirmadas durante el levantamiento de requisitos. Es la referencia funcional para evitar contradicciones durante la implementación.
+Este documento conserva las decisiones confirmadas durante el levantamiento de requisitos y su actualización operativa al 14 de agosto de 2026. Es la referencia funcional para evitar contradicciones durante la implementación.
 
 ## Negocio y alcance
 
@@ -20,11 +20,16 @@ Este documento conserva las decisiones confirmadas durante el levantamiento de r
 - Las clientas utilizan teléfono internacional y contraseña.
 - No se exige correo a las clientas.
 - El teléfono se verifica mediante OTP por WhatsApp.
+- El autorregistro sin OTP confirmado se conserva sólo como borrador durante 24 horas: no es una cuenta activa, no crea sesión y queda fuera de la operación y los reportes.
+- Si se interrumpe la verificación, escribir el mismo teléfono y la contraseña correcta al iniciar sesión reanuda el intento; una contraseña incorrecta no revela ni recupera el borrador.
+- El reenvío del OTP exige el `challengeId` de la verificación vigente y nunca acepta únicamente un teléfono. Si falla el primer envío se descarta el borrador; al vencer, la limpieza horaria lo elimina para permitir un registro nuevo.
+- El estado general `PENDING_VERIFICATION` también sirve para altas administrativas y cambios de WhatsApp, por lo que sólo se purgan autorregistros marcados con vencimiento.
 - La recuperación de una clienta utiliza WhatsApp.
 - Las manicuristas y la administradora pueden entrar con correo o teléfono y contraseña.
 - La recuperación del personal utiliza correo.
 - El número, tokens y plantillas de WhatsApp son variables de entorno.
-- Debe existir un proveedor simulado para desarrollo local.
+- Debe existir un proveedor simulado para desarrollo local, activado de forma deliberada.
+- El código OTP simulado queda apagado por defecto. Sólo puede exponerse temporalmente para probar registro o recuperación cuando `NODE_ENV=development` y `OTP_MOCK_DEBUG_ENABLED=true`; después se vuelve a `false` y producción siempre lo rechaza.
 - Los perfiles de clientas creados manualmente pueden permanecer como invitados hasta activarse.
 - La administradora puede desactivar y reactivar clientas.
 - La administradora no puede leer contraseñas; puede iniciar un restablecimiento seguro.
@@ -58,9 +63,11 @@ Este documento conserva las decisiones confirmadas durante el levantamiento de r
 - No existe lista de espera.
 - La clienta elige manicurista o “Cualquiera”.
 - “Cualquiera” agrega los horarios de todas las manicuristas disponibles.
-- El horario se retiene 10 minutos mientras se carga el comprobante.
-- Una reprogramación hecha por la manicurista no consume la reprogramación permitida a la clienta.
-- La clienta puede reprogramar una sola vez y con 24 horas de anticipación.
+- El horario se retiene inicialmente 10 minutos mientras se carga el comprobante; el plazo es administrable.
+- Una reprogramación hecha por la manicurista no consume el límite disponible para la clienta.
+- El valor inicial permite una reprogramación de clienta con 24 horas de anticipación.
+- La administradora puede cambiar el límite de reprogramaciones y las horas mínimas de aviso; API, políticas y agenda consumen la configuración vigente.
+- El listado de citas se pagina por cursor, prioriza la página más reciente y permite cargar citas anteriores sin duplicarlas.
 - La cancelación no devuelve el anticipo.
 - Los 10 minutos de tolerancia son una política informativa; no producen una acción automática.
 - La manicurista marca asistencia, finalización o ausencia.
@@ -75,6 +82,8 @@ Este documento conserva las decisiones confirmadas durante el levantamiento de r
 - Se conservan los servicios y precios iniciales de la calculadora anterior.
 - La administradora puede modificar y agregar técnicas, largos, decoraciones, extras, precios e iconos.
 - Los iconos pueden subirse desde administración.
+- Cada diseño admite hasta cinco imágenes ordenadas.
+- La administradora puede elegir una imagen existente como portada sin eliminar las demás; la primera imagen ordenada es la portada pública.
 - El resultado de la calculadora es una estimación sujeta a revisión.
 - Una solicitud personalizada admite hasta cinco imágenes.
 
@@ -90,6 +99,8 @@ Este documento conserva las decisiones confirmadas durante el levantamiento de r
 - Una vez revisada, la clienta solo reserva con esa manicurista.
 - No se retienen horarios durante la revisión.
 - Las solicitudes permanecen pendientes hasta atención o cancelación.
+- La clienta puede cancelar su propia solicitud mientras esté pendiente o en revisión y no tenga una cita activa asociada.
+- Una clienta sólo consulta sus solicitudes. Una manicurista sólo consulta solicitudes abiertas que puede tomar y las que le fueron asignadas; una vez tomada, otras manicuristas pierden acceso. Las imágenes adjuntas aplican exactamente la misma autorización y se sirven como contenido privado sin caché pública.
 - “No tengo diseño” utiliza el mismo modelo de selección y contacto; después la manicurista crea la cita manual.
 
 ## Visitas y recompensas
@@ -118,7 +129,7 @@ Este documento conserva las decisiones confirmadas durante el levantamiento de r
 - No existen anticipos distintos por servicio en el alcance inicial.
 - El pago inicial se realiza por transferencia SPEI directa.
 - El sistema genera una referencia.
-- La clienta carga un comprobante dentro de 10 minutos.
+- La clienta carga un comprobante dentro del plazo de apartado vigente, inicialmente 10 minutos.
 - Al cargarlo, el horario queda bloqueado en estado “Pago por verificar”.
 - Solo la administradora aprueba o rechaza.
 - Al rechazar, el horario se libera.
@@ -142,10 +153,13 @@ Este documento conserva las decisiones confirmadas durante el levantamiento de r
 - Las manicuristas reciben avisos de citas, cambios, cotizaciones y pagos confirmados.
 - Cada manicurista puede conectar su Google Calendar.
 - La sincronización inicial es desde Dear Angel hacia el calendario.
-- El correo `miniyahirpro@gmail.com` será el remitente SMTP inicial y se configura por entorno.
+- La cuenta remitente SMTP se decide y configura por entorno; ninguna dirección personal queda fijada en el repositorio.
 - No se deben compartir tokens ni contraseñas de aplicación por chat o repositorio.
 - Los avisos se guardan internamente antes de intentar el canal externo; una falla de Meta, SMTP o Google nunca revierte una cita o un anticipo.
 - Las entregas externas se reintentan hasta cinco veces con espera progresiva y conservan el último error para revisión administrativa.
+- Redis y BullMQ programan entregas, recordatorios, vencimientos de anticipo, retención de comprobantes y limpieza horaria de autorregistros vencidos.
+- El worker no replica reglas ni accede directamente a datos de negocio: llama endpoints internos de la API autenticados con `WORKER_SHARED_SECRET`.
+- Cuando `BACKGROUND_JOBS_MODE=worker`, la API no inicia programadores equivalentes en su propio proceso.
 - Los textos internos son editables por la administradora y aceptan `{{titulo}}` y `{{mensaje}}`; el nombre de la plantilla aprobada en Meta también es configurable.
 - Los tokens OAuth de Google se cifran con AES-256-GCM usando una clave exclusiva del entorno.
 - El perfil propio exige la contraseña actual para cambiar datos; cambiar el WhatsApp de una cuenta cliente obliga a verificar el número nuevo.
@@ -165,8 +179,8 @@ Este documento conserva las decisiones confirmadas durante el levantamiento de r
 - Deben existir una página permanente, un resumen en reserva y un aviso destacado antes del anticipo.
 - La clienta debe aceptar expresamente la versión vigente.
 - El anticipo no es reembolsable.
-- Reagendar con el mismo anticipo se permite una vez.
-- Los cambios de la clienta requieren un día de anticipación.
+- El valor inicial permite reagendar una vez con el mismo anticipo; el límite es administrable.
+- El valor inicial exige un día de anticipación para cambios de clienta; las horas son administrables.
 - Adultos asisten sin niños ni acompañantes.
 - Menores de 16 años deben asistir con una persona adulta.
 - Hay 10 minutos de tolerancia informativa.
@@ -174,7 +188,13 @@ Este documento conserva las decisiones confirmadas durante el levantamiento de r
 ## Infraestructura y datos
 
 - La primera entrega se ejecuta localmente con Docker para demostración en laptop.
+- El Compose local publica puertos sólo en `127.0.0.1`; sus credenciales predeterminadas nunca se reutilizan para acceso público.
+- Cloudflare y ngrok se definen en un overlay endurecido y sólo se levantan combinando `compose.yaml` con `docker/compose.public.yaml` y `--env-file .env.public`; `.env.public.example` es la plantilla versionada sin secretos.
+- El overlay usa el proyecto `dear-angel-public` y volúmenes separados. Como conserva los mismos puertos del host, se detiene el proyecto local antes de iniciarlo; el cambio de entorno nunca borra volúmenes.
+- El overlay público usa producción, HTTPS, secretos obligatorios y OTP mock deshabilitado.
+- `.env.example` usa `localhost` para PostgreSQL, Redis y MinIO. Compose inyecta sus hosts internos directamente; al ejecutar aplicaciones en Windows se exportan variables explícitamente porque el worker no carga por sí mismo el `.env` raíz.
 - Los respaldos son semanales.
+- El entorno público mantiene su propio daemon de respaldo. Los scripts PowerShell de copia y restauración están delimitados al proyecto local; cualquier comando manual público incluye ambos archivos Compose y `.env.public`.
 - Se respaldan base de datos y archivos administrados.
 - Debe existir un procedimiento probado de restauración.
 - Los comprobantes se eliminan al cumplir un año.
@@ -208,8 +228,10 @@ Este documento conserva las decisiones confirmadas durante el levantamiento de r
 ## Calidad y recuperación
 
 - El respaldo semanal incluye PostgreSQL y todos los archivos del bucket privado.
-- Las copias se publican de forma atómica, se verifican con SHA-256 y se conservan 90 días por defecto.
+- Cada copia consta del `.tar.gz` con manifiesto y hashes internos más un `.sha256` externo; la verificación exige y comprueba ambos. Se conservan 90 días por defecto.
 - Una restauración real exige confirmación explícita; su ensayo normal se realiza sobre destinos aislados.
 - Los datos demo sólo se crean con `DEMO_DATA_ENABLED=true`, son ficticios y el proceso es idempotente.
 - Producción no inicia con contraseñas locales, orígenes inseguros o credenciales faltantes de proveedores activos.
+- Typecheck, lint, pruebas y build regeneran Prisma Client automáticamente antes de ejecutarse.
 - La candidata de entrega debe pasar unitarios, build, auditoría de dependencias, e2e y ensayo Docker limpio.
+- La automatización disponible no equivale a una validación exitosa: Docker y E2E permanecen pendientes hasta registrar y confirmar su ejecución sobre la candidata.

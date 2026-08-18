@@ -6,8 +6,16 @@ import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { apiFetch } from '@/lib/api';
-import type { Appointment, AppointmentStatus, CurrentUser, TechnicianSummary } from '@/lib/api';
+import type {
+  Appointment,
+  AppointmentListResponse,
+  AppointmentStatus,
+  BookingPolicy,
+  CurrentUser,
+  TechnicianSummary,
+} from '@/lib/api';
 import { meridaLocalToIso } from '@/lib/business-time';
+import { PhoneField } from './phone-field';
 import styles from './portal.module.css';
 
 const statusLabels: Record<AppointmentStatus, string> = {
@@ -32,16 +40,44 @@ export function AppointmentsPanel() {
   const router = useRouter();
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [policy, setPolicy] = useState<BookingPolicy | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [technicians, setTechnicians] = useState<TechnicianSummary[]>([]);
   const [editingId, setEditingId] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const loadAppointments = useCallback(async () => {
-    const response = await apiFetch<{ items: Appointment[] }>('/appointments');
-    setAppointments(response.items);
+  const loadAppointments = useCallback(async (cursor?: string) => {
+    const params = new URLSearchParams({ limit: '20' });
+    if (cursor) params.set('cursor', cursor);
+    const response = await apiFetch<AppointmentListResponse>(`/appointments?${params}`);
+    const sortNewestFirst = (items: Appointment[]) =>
+      [...items].sort((left, right) => Date.parse(right.startAt) - Date.parse(left.startAt));
+    if (cursor) {
+      setAppointments((current) => {
+        const unique = new Map(current.map((item) => [item.id, item]));
+        for (const item of response.items) unique.set(item.id, item);
+        return sortNewestFirst([...unique.values()]);
+      });
+    } else setAppointments(sortNewestFirst(response.items));
+    setNextCursor(response.nextCursor ?? null);
+    if (response.policy) setPolicy(response.policy);
   }, []);
+
+  async function loadEarlier() {
+    if (!nextCursor) return;
+    setLoadingMore(true);
+    setError('');
+    try {
+      await loadAppointments(nextCursor);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No pudimos cargar citas anteriores.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   useEffect(() => {
     apiFetch<{ user: CurrentUser }>('/auth/me')
@@ -128,7 +164,9 @@ export function AppointmentsPanel() {
       setEditingId('');
       setNotice(
         user?.role === 'CLIENT'
-          ? 'Tu cita quedó reprogramada. Recuerda que puedes hacerlo una sola vez.'
+          ? policy
+            ? `Tu cita quedó reprogramada. Esta cuenta permite hasta ${policy.clientRescheduleLimit} cambio${policy.clientRescheduleLimit === 1 ? '' : 's'} por cita.`
+            : 'Tu cita quedó reprogramada.'
           : 'La cita quedó reprogramada sin consumir el cambio de la clienta.',
       );
       await loadAppointments();
@@ -168,10 +206,7 @@ export function AppointmentsPanel() {
               <label htmlFor="manualName">Nombre de la clienta</label>
               <input id="manualName" name="name" required />
             </div>
-            <div className={styles.field}>
-              <label htmlFor="manualPhone">WhatsApp</label>
-              <input id="manualPhone" name="phone" placeholder="999 000 0000" />
-            </div>
+            <PhoneField id="manualPhone" label="WhatsApp (opcional)" name="phone" />
             <div className={styles.gridTwo}>
               <div className={styles.field}>
                 <label htmlFor="manualStart">Fecha y hora</label>
@@ -223,8 +258,11 @@ export function AppointmentsPanel() {
             <span className={styles.eyebrow}>{isStaff ? 'Operación diaria' : 'Mi historial'}</span>
             <h2 className={styles.sectionTitle}>Citas · {appointments.length}</h2>
           </div>
-          <Link className={styles.textLink} href="/mi-cuenta">
-            Volver a mi cuenta
+          <Link
+            className={styles.textLink}
+            href={user.role === 'ADMIN' ? '/administracion' : '/mi-cuenta'}
+          >
+            {user.role === 'ADMIN' ? 'Ver resumen del estudio' : 'Mi cuenta'}
           </Link>
         </div>
         {error ? <div className={styles.error}>{error}</div> : null}
@@ -238,6 +276,10 @@ export function AppointmentsPanel() {
           ) : null}
           {appointments.map((appointment) => {
             const canChange = ['HELD', 'PENDING_PAYMENT', 'CONFIRMED'].includes(appointment.status);
+            const reachedClientLimit =
+              user.role === 'CLIENT' &&
+              policy !== null &&
+              appointment.clientRescheduleCount >= policy.clientRescheduleLimit;
             return (
               <article className={styles.appointmentCard} key={appointment.id}>
                 <div className={styles.appointmentDate}>
@@ -274,9 +316,16 @@ export function AppointmentsPanel() {
                 ) : null}
                 {canChange ? (
                   <div className={styles.userActions}>
-                    <button onClick={() => setEditingId(appointment.id)} type="button">
-                      Reprogramar
-                    </button>
+                    {!reachedClientLimit ? (
+                      <button onClick={() => setEditingId(appointment.id)} type="button">
+                        Reprogramar
+                      </button>
+                    ) : (
+                      <span className={styles.fieldHint}>
+                        Alcanzaste el límite de {policy.clientRescheduleLimit} cambio
+                        {policy.clientRescheduleLimit === 1 ? '' : 's'} para esta cita.
+                      </span>
+                    )}
                     <button onClick={() => cancel(appointment)} type="button">
                       Cancelar
                     </button>
@@ -320,6 +369,16 @@ export function AppointmentsPanel() {
             );
           })}
         </div>
+        {nextCursor ? (
+          <button
+            className={styles.secondaryButton}
+            disabled={loadingMore}
+            onClick={() => void loadEarlier()}
+            type="button"
+          >
+            {loadingMore ? 'Cargando…' : 'Cargar citas anteriores'}
+          </button>
+        ) : null}
       </section>
     </div>
   );

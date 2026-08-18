@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 
-import styles from './portal.module.css';
+import styles from './back-button.module.css';
 
 export function BackButton() {
   const router = useRouter();
@@ -18,7 +18,7 @@ export function BackButton() {
   return (
     <button
       aria-label="Regresar a la pantalla anterior"
-      className={styles.backButton}
+      className={styles.button}
       onClick={goBack}
       title="Regresar"
       type="button"

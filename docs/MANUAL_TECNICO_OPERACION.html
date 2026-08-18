@@ -87,7 +87,7 @@
         font:
           8.4pt/1.5 Consolas,
           monospace;
-        white-space: pre-wrap;
+        white-space: normal;
         break-inside: avoid;
       }
       .note {
@@ -152,7 +152,7 @@
           Instalación Docker, seguridad, respaldos, restauración, pruebas y mantenimiento.
         </p>
       </div>
-      <div class="meta"><strong>Versión 1.0 · 12 de agosto de 2026 · America/Merida</strong></div>
+      <div class="meta"><strong>Versión 1.1 · 14 de agosto de 2026 · America/Merida</strong></div>
     </section>
     <section class="page">
       <span class="eyebrow">01 · Arquitectura</span>
@@ -175,7 +175,10 @@
           </tr>
           <tr>
             <td>worker</td>
-            <td>Base para trabajos BullMQ y comprobación de Redis.</td>
+            <td>
+              Consumer y programadores BullMQ. Ejecuta casos de uso mediante endpoints internos de
+              la API autenticados con un secreto compartido.
+            </td>
           </tr>
           <tr>
             <td>postgres</td>
@@ -195,7 +198,9 @@
           </tr>
           <tr>
             <td>stable-preview</td>
-            <td>Túnel HTTPS fijo de ngrok para demostración.</td>
+            <td>
+              Túnel HTTPS fijo de ngrok para demostración; existe únicamente en el overlay público.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -210,9 +215,16 @@
         archivos portables; está ignorada por Git.
       </p>
       <div class="note">
-        <strong>No ejecutar</strong> <code>docker compose down -v</code> salvo que se quiera borrar
-        deliberadamente toda la información local.
+        <strong>No ejecutes</strong> <code>docker compose down -v</code> durante la operación:
+        elimina la base y los archivos persistentes del proyecto seleccionado.
       </div>
+      <h3>Tareas asíncronas</h3>
+      <p>
+        Redis conserva la cola. El worker programa entregas cada 30 segundos, recordatorios cada 5
+        minutos, vencimientos cada minuto y retención de comprobantes cada 6 horas. Con
+        <code>BACKGROUND_JOBS_MODE=worker</code>, la API no inicia programadores duplicados. API y
+        worker deben compartir exactamente el mismo <code>WORKER_SHARED_SECRET</code>.
+      </p>
       <div class="footer"><span>Dear Angel · Operación</span><span>2</span></div>
     </section>
     <section class="page">
@@ -222,28 +234,48 @@
       <ul>
         <li>Windows 10/11 con WSL 2.</li>
         <li>Docker Desktop en contenedores Linux.</li>
+        <li>Node.js 22 o posterior y npm 10.9 o posterior para scripts y desarrollo en host.</li>
         <li>8 GB de RAM recomendados.</li>
         <li>Puertos 3000, 3001, 3002, 5432, 6379, 9000 y 9001 disponibles.</li>
       </ul>
       <h3>Inicio local</h3>
       <div class="code">
-        Copy-Item .env.example .env docker compose up -d --build docker compose ps Invoke-WebRequest
+        Copy-Item .env.example .env<br />docker compose up -d --build<br />docker compose ps<br />Invoke-WebRequest
         http://localhost:3000
       </div>
       <p>
         La API aplica migraciones automáticamente antes de iniciar. Todos los servicios deben
-        mostrar <code>healthy</code>, excepto ngrok, que no define health check propio.
+        mostrar <code>healthy</code> antes de operar. Los puertos del Compose local se enlazan sólo
+        a <code>127.0.0.1</code>.
       </p>
       <h3>Enlace fijo</h3>
       <p>
-        Configura <code>NGROK_AUTHTOKEN</code>, <code>NGROK_DOMAIN</code> y
-        <code>PUBLIC_APP_URL=https://...</code>. Después:
+        Copia <code>.env.public.example</code> como <code>.env.public</code>. Configura allí
+        <code>NGROK_AUTHTOKEN</code>, <code>NGROK_DOMAIN</code>, las URLs HTTPS y todos los secretos
+        que exige el overlay público. El archivo resultante está ignorado por Git. Después:
       </p>
       <div class="code">
-        docker compose --profile stable-preview up -d docker compose logs stable-preview
+        Copy-Item .env.public.example .env.public<br />docker compose down<br />docker compose
+        --env-file .env.public -f compose.yaml -f docker/compose.public.yaml --profile
+        stable-preview up -d --build worker backup stable-preview<br />docker compose --env-file
+        .env.public -f compose.yaml -f docker/compose.public.yaml --profile stable-preview logs
+        stable-preview
+      </div>
+      <p>
+        El perfil temporal <code>preview</code> usa el mismo patrón con
+        <code>--profile preview</code>. No se debe ejecutar ninguno de los dos perfiles sin
+        <code>--env-file .env.public</code> y <code>docker/compose.public.yaml</code>.
+      </p>
+      <div class="note">
+        El overlay usa el proyecto <code>dear-angel-public</code> y volúmenes separados, de modo que
+        PostgreSQL nace con las credenciales públicas. Local y público comparten puertos y no pueden
+        estar activos simultáneamente. <code>docker compose down</code> detiene el local sin borrar
+        sus volúmenes; nunca agregues <code>--volumes</code> para cambiar de entorno.
       </div>
       <h3>Datos de demostración</h3>
-      <div class="code">$env:DEMO_DATA_ENABLED='true' npm run demo:seed</div>
+      <div class="code">
+        $env:DEMO_DATA_ENABLED='true'<br />npm run demo:seed<br />Remove-Item Env:DEMO_DATA_ENABLED
+      </div>
       <p>
         El seed es explícito e idempotente. Crea dos manicuristas, tres clientes, 15 citas, tres
         anticipos, visitas y un cupón. No se activa solo.
@@ -263,15 +295,18 @@
         <tbody>
           <tr>
             <td>Base</td>
-            <td>POSTGRES_PASSWORD, MINIO_ROOT_PASSWORD, OTP_PEPPER</td>
+            <td>POSTGRES_PASSWORD, DATABASE_URL, MINIO_ROOT_PASSWORD, OTP_PEPPER</td>
           </tr>
           <tr>
             <td>Aplicación</td>
-            <td>PUBLIC_APP_URL, CORS_ORIGIN, SESSION_TTL_DAYS</td>
+            <td>PUBLIC_APP_URL, CORS_ORIGIN, SESSION_TTL_DAYS, WORKER_SHARED_SECRET</td>
           </tr>
           <tr>
             <td>WhatsApp</td>
-            <td>PHONE_NUMBER_ID, ACCESS_TOKEN y plantillas aprobadas</td>
+            <td>
+              PHONE_NUMBER_ID, ACCESS_TOKEN y plantillas aprobadas; OTP y recuperación usan
+              AUTHENTICATION con botón Copiar código
+            </td>
           </tr>
           <tr>
             <td>Correo</td>
@@ -285,7 +320,27 @@
       </table>
       <p>
         En producción la API rechaza secretos locales, CORS comodín, URLs públicas sin HTTPS y
-        credenciales incompletas de una integración habilitada.
+        credenciales incompletas de una integración habilitada. También rechaza el OTP de
+        depuración. Un código mock está apagado por defecto y sólo puede mostrarse temporalmente en
+        desarrollo con <code>OTP_MOCK_DEBUG_ENABLED=true</code>. Actívalo únicamente para probar
+        registro o recuperación, recrea la API y vuelve a <code>false</code> al terminar.
+      </p>
+      <p>
+        La interfaz muestra siempre país y lada y envía teléfonos E.164; la API no presupone México
+        si una llamada directa omite la lada. En modo real, Meta envía desde el número empresarial
+        asociado a <code>WHATSAPP_PHONE_NUMBER_ID</code> hacia el número de prueba. El estado
+        <em>Aceptado por proveedor</em> confirma una respuesta satisfactoria de Meta o SMTP, no la
+        entrega o lectura final; esa confirmación requiere webhooks del proveedor.
+      </p>
+      <h3>Docker frente a ejecución en host</h3>
+      <p>
+        <code>.env.example</code> usa <code>localhost</code> para PostgreSQL, Redis y MinIO;
+        <code>compose.yaml</code> inyecta sus hosts internos directamente. Al ejecutar API y worker
+        con Node.js en Windows, exporta <code>DATABASE_URL</code>, <code>REDIS_URL</code>, las
+        variables de MinIO, <code>API_INTERNAL_URL</code> y <code>WORKER_SHARED_SECRET</code> en la
+        terminal, porque el worker no carga automáticamente el <code>.env</code> raíz. Para
+        publicación usa la plantilla separada <code>.env.public.example</code>; nunca reutilices los
+        secretos locales.
       </p>
       <h3>Controles implementados</h3>
       <ul class="check">
@@ -306,23 +361,44 @@
       <h2>Copia, verificación y restauración</h2>
       <p>
         El contenedor <code>backup</code> genera una copia al iniciar y después cada 604800
-        segundos. Conserva 90 días por defecto. Cada archivo incluye dump, objetos, manifiesto,
-        hashes internos y checksum externo.
+        segundos. Conserva 90 días por defecto y, si un intento falla, reintenta después de 300
+        segundos. El <code>.tar.gz</code> incluye dump, objetos, manifiesto y hashes internos; el
+        checksum externo se genera como archivo adyacente. La verificación exige ambos. El marcador
+        de salud se conserva junto a los respaldos y lo actualizan tanto el daemon como una copia
+        manual exitosa.
       </p>
       <h3>Crear y verificar</h3>
       <div class="code">
-        npm run backup:now powershell -File scripts/verify-backup.ps1 ` -BackupFile
-        backups/dear-angel-FECHA.tar.gz npm run backup:test-restore
+        npm run backup:now<br />powershell -ExecutionPolicy Bypass -File scripts/verify-backup.ps1 `
+        <br />&nbsp;&nbsp;-BackupFile .\backups\dear-angel-FECHA-SUFIJO.tar.gz<br />npm run
+        backup:test-restore
       </div>
       <p>
         <code>backup:test-restore</code> crea una base y bucket temporales con nombres validados,
-        restaura todo, compara usuarios, migraciones y archivos, y elimina únicamente esos destinos
-        temporales.
+        restaura todo, compara los objetos con el manifiesto, informa los conteos de usuarios y
+        migraciones aplicadas, y elimina únicamente esos destinos temporales.
       </p>
-      <h3>Restaurar operación</h3>
+      <h3>Respaldo del entorno público</h3>
+      <p>
+        Los scripts PowerShell anteriores apuntan al proyecto local y se usan con el público
+        detenido. En <code>dear-angel-public</code>, deja activo el daemon <code>backup</code>. Para
+        crear y verificar de inmediato una copia pública usa:
+      </p>
       <div class="code">
-        powershell -File scripts/restore-backup.ps1 ` -BackupFile backups/dear-angel-FECHA.tar.gz `
-        -ConfirmRestore
+        docker compose --env-file .env.public -f compose.yaml -f docker/compose.public.yaml run --rm
+        --no-deps backup once<br />docker compose --env-file .env.public -f compose.yaml -f
+        docker/compose.public.yaml --profile tools run --rm -e
+        "BACKUP_FILE=/backups/dear-angel-FECHA-SUFIJO.tar.gz" restore verify
+      </div>
+      <p>
+        No uses <code>restore-backup.ps1</code> contra el proyecto público. Una restauración pública
+        requiere revisar explícitamente el proyecto y el archivo objetivo.
+      </p>
+      <h3>Restaurar operación local</h3>
+      <div class="code">
+        powershell -ExecutionPolicy Bypass -File scripts/restore-backup.ps1 `
+        <br />&nbsp;&nbsp;-BackupFile .\backups\dear-angel-FECHA-SUFIJO.tar.gz `
+        <br />&nbsp;&nbsp;-ConfirmRestore
       </div>
       <div class="note">
         <strong>Destructivo:</strong> la restauración operativa reemplaza la base y el bucket
@@ -340,9 +416,11 @@
       <span class="eyebrow">05 · Calidad</span>
       <h2>Pruebas y liberación</h2>
       <h3>Verificación diaria</h3>
-      <div class="code">
-        npm run typecheck npm run lint npm test npm run build npm audit --omit=dev
-      </div>
+      <div class="code">npm run quality<br />npm audit --omit=dev</div>
+      <p>
+        Los hooks de calidad regeneran Prisma Client antes de typecheck, lint, pruebas y build. No
+        hace falta ejecutar <code>db:generate</code> por separado para esas tareas.
+      </p>
       <h3>Prueba integrada</h3>
       <div class="code">npm run test:e2e</div>
       <p>
@@ -350,6 +428,12 @@
         privacidad de comprobantes, cita manual a cualquier minuto, rechazo de traslape, dashboard,
         cuatro reportes, CSV, XLSX y auditoría. Los registros temporales se limpian al terminar.
       </p>
+      <div class="note">
+        <strong>Estado de la candidata:</strong> el 14 de agosto de 2026 pasaron calidad integral,
+        reconstrucción y salud Docker, E2E, respaldo/restauración aislada y clean-install. La
+        entrega externa real se confirma después de incorporar las credenciales propias de Meta,
+        SMTP y Google.
+      </div>
       <h3>Lista antes de mostrar</h3>
       <ul class="check">
         <li>Todos los contenedores saludables.</li>
@@ -362,9 +446,14 @@
       </ul>
       <h3>Observabilidad local</h3>
       <div class="code">
-        docker compose ps docker compose logs --tail 200 api web worker backup docker compose exec
-        postgres pg_isready
+        docker compose ps<br />docker compose logs --tail 200 api web worker backup<br />docker
+        compose exec postgres pg_isready
       </div>
+      <p>
+        <code>npm run test:clean-install</code> no relanza los túneles públicos. Si eran necesarios,
+        vuelve a iniciarlos de forma explícita con <code>--env-file .env.public</code> y ambos
+        archivos Compose después de validar la instalación local.
+      </p>
       <div class="footer"><span>Dear Angel · Operación</span><span>6</span></div>
     </section>
     <section class="page">
@@ -384,7 +473,10 @@
           </tr>
           <tr>
             <td>El enlace no abre</td>
-            <td>Confirma que laptop, Docker, web y stable-preview estén encendidos.</td>
+            <td>
+              Confirma que laptop, Docker, web y stable-preview estén encendidos y que el perfil se
+              haya iniciado combinando el Compose base y el overlay público.
+            </td>
           </tr>
           <tr>
             <td>API no está healthy</td>

@@ -39,6 +39,7 @@ export function PaymentPanel() {
   const [remaining, setRemaining] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [receiptError, setReceiptError] = useState('');
 
   useEffect(() => {
     if (!appointmentId) {
@@ -52,9 +53,21 @@ export function PaymentPanel() {
     ])
       .then(([session, paymentSettings, result]) => {
         if (session.user.role !== 'CLIENT') throw new Error('Esta vista pertenece a clientes.');
+        if (session.user.mustChangePassword) {
+          router.replace('/mi-cuenta');
+          return;
+        }
         setSettings(paymentSettings);
         setDeposit(result.deposit);
-        if (result.deposit.status === 'APPROVED') void loadReceipt(appointmentId);
+        if (result.deposit.status === 'APPROVED') {
+          void loadReceipt(appointmentId).catch((reason) =>
+            setReceiptError(
+              reason instanceof Error
+                ? reason.message
+                : 'La cita está confirmada, pero no pudimos abrir el comprobante digital.',
+            ),
+          );
+        }
       })
       .catch((reason) => {
         if (reason instanceof Error && reason.message.includes('sesión')) router.replace('/acceso');
@@ -89,7 +102,54 @@ export function PaymentPanel() {
       `/payments/appointments/${id}/confirmation`,
     );
     setReceipt(result.receipt);
+    setReceiptError('');
   }
+
+  async function refreshDeposit(silent = false) {
+    if (!appointmentId) return;
+    if (!silent) setBusy(true);
+    setError('');
+    try {
+      const result = await apiFetch<{ deposit: DepositPayment }>(
+        `/payments/appointments/${appointmentId}`,
+      );
+      setDeposit(result.deposit);
+      if (result.deposit.status === 'APPROVED') {
+        try {
+          await loadReceipt(appointmentId);
+        } catch (reason) {
+          setReceiptError(
+            reason instanceof Error
+              ? reason.message
+              : 'La cita está confirmada, pero no pudimos abrir el comprobante digital.',
+          );
+        }
+      }
+    } catch (reason) {
+      if (!silent)
+        setError(reason instanceof Error ? reason.message : 'No pudimos actualizar el anticipo.');
+    } finally {
+      if (!silent) setBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (deposit?.status !== 'PENDING_REVIEW' || !appointmentId) return;
+    const timer = window.setInterval(() => void refreshDeposit(true), 15_000);
+    return () => window.clearInterval(timer);
+  }, [appointmentId, deposit?.status]);
+
+  useEffect(() => {
+    const expiresAt = deposit?.appointment.holdExpiresAt;
+    if (
+      deposit?.status === 'AWAITING_RECEIPT' &&
+      expiresAt &&
+      remaining === 0 &&
+      Date.now() >= Date.parse(expiresAt)
+    ) {
+      void refreshDeposit();
+    }
+  }, [deposit?.appointment.holdExpiresAt, deposit?.status, remaining]);
 
   async function upload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -110,6 +170,24 @@ export function PaymentPanel() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (!appointmentId) {
+    return (
+      <div className={portal.card}>
+        <div className={portal.error} role="alert">
+          Abre el anticipo desde una cita apartada para identificar la reservación.
+        </div>
+        <div className={portal.formFooter}>
+          <Link className={portal.textLink} href="/agenda">
+            Ver mis citas
+          </Link>
+          <Link className={portal.textLink} href="/reservar">
+            Buscar otro horario
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   if (!deposit || !settings) {
@@ -214,35 +292,69 @@ export function PaymentPanel() {
             <Link className={styles.receiptLink} href="/agenda">
               Consultar mis citas
             </Link>
-          </>
-        ) : deposit.status === 'APPROVED' && receipt ? (
-          <article className={styles.receiptCard}>
-            <span className={styles.caption}>Comprobante digital de reservación</span>
-            <h2>Tu cita está confirmada.</h2>
-            <strong className={styles.receiptFolio}>{receipt.folio}</strong>
-            <div className={styles.reviewMeta}>
-              <div>
-                <span>Anticipo</span>
-                <strong>{money.format(receipt.amountCents / 100)}</strong>
-              </div>
-              <div>
-                <span>Referencia</span>
-                <strong>{receipt.reference}</strong>
-              </div>
-              <div>
-                <span>Fecha</span>
-                <strong>{dateTime(receipt.startAt)}</strong>
-              </div>
-              <div>
-                <span>Manicurista</span>
-                <strong>{receipt.technician.fullName}</strong>
-              </div>
-            </div>
-            <p>{receipt.notice}</p>
-            <button className={portal.secondaryButton} onClick={() => window.print()} type="button">
-              Imprimir o guardar en PDF
+            <button
+              className={portal.secondaryButton}
+              disabled={busy}
+              onClick={() => void refreshDeposit()}
+              type="button"
+            >
+              {busy ? 'Actualizando…' : 'Actualizar estado'}
             </button>
-          </article>
+          </>
+        ) : deposit.status === 'APPROVED' ? (
+          receipt ? (
+            <article className={styles.receiptCard}>
+              <span className={styles.caption}>Comprobante digital de reservación</span>
+              <h2>Tu cita está confirmada.</h2>
+              <strong className={styles.receiptFolio}>{receipt.folio}</strong>
+              <div className={styles.reviewMeta}>
+                <div>
+                  <span>Anticipo</span>
+                  <strong>{money.format(receipt.amountCents / 100)}</strong>
+                </div>
+                <div>
+                  <span>Referencia</span>
+                  <strong>{receipt.reference}</strong>
+                </div>
+                <div>
+                  <span>Fecha</span>
+                  <strong>{dateTime(receipt.startAt)}</strong>
+                </div>
+                <div>
+                  <span>Manicurista</span>
+                  <strong>{receipt.technician.fullName}</strong>
+                </div>
+              </div>
+              <p>{receipt.notice}</p>
+              <button
+                className={portal.secondaryButton}
+                onClick={() => window.print()}
+                type="button"
+              >
+                Imprimir o guardar en PDF
+              </button>
+            </article>
+          ) : (
+            <>
+              <span className={styles.caption}>Reservación confirmada</span>
+              <h2>Estamos preparando tu comprobante digital.</h2>
+              {receiptError ? (
+                <div className={portal.error} role="alert">
+                  {receiptError}
+                </div>
+              ) : (
+                <p>La cita ya está confirmada. El comprobante puede tardar unos segundos.</p>
+              )}
+              <button
+                className={portal.secondaryButton}
+                disabled={busy}
+                onClick={() => void refreshDeposit()}
+                type="button"
+              >
+                {busy ? 'Actualizando…' : 'Volver a cargar comprobante'}
+              </button>
+            </>
+          )
         ) : (
           <>
             <span className={styles.caption}>Apartado finalizado</span>

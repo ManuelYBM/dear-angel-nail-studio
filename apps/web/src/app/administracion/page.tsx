@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 
 import { AdminDashboardPanel } from '@/components/admin-dashboard-panel';
 import { PortalShell } from '@/components/portal-shell';
@@ -8,12 +9,15 @@ export const metadata: Metadata = { title: 'Resumen administrativo' };
 export default function AdminDashboardPage() {
   return (
     <PortalShell
+      access="admin"
       eyebrow="Panel de la administradora"
       title="Tu estudio, de un vistazo."
       intro="Consulta la agenda, anticipos y comportamiento de la clientela con los datos del periodo que elijas."
       wide
     >
-      <AdminDashboardPanel />
+      <Suspense fallback={null}>
+        <AdminDashboardPanel />
+      </Suspense>
     </PortalShell>
   );
 }

@@ -65,7 +65,7 @@ export function PwaBridge() {
     <>
       {!online ? (
         <div className={styles.offline} role="status">
-          Sin conexión · algunas acciones esperarán a que vuelva internet
+          Sin conexión · vuelve a intentar las acciones pendientes cuando regrese internet
         </div>
       ) : null}
       {canInstall ? (

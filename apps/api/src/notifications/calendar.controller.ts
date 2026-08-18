@@ -3,6 +3,10 @@ import type { Response } from 'express';
 
 import { CurrentUser, Public, Roles } from '../common/auth.decorators';
 import type { AuthenticatedUser } from '../common/auth.types';
+import {
+  canExposeMockOtpCode,
+  hasDevelopmentWhatsAppTextOtpRecipients,
+} from '../common/environment';
 import { CalendarService } from './calendar.service';
 
 @Controller('integrations/google-calendar')
@@ -47,14 +51,28 @@ export class CalendarController {
 }
 
 @Controller('integrations')
+@Roles('ADMIN', 'NAIL_TECHNICIAN')
 export class IntegrationStatusController {
   @Get('status')
   status() {
     const whatsappEnabled = process.env.WHATSAPP_ENABLED === 'true';
-    const whatsappConfigured = Boolean(
+    const smtpEnabled = process.env.SMTP_ENABLED === 'true';
+    const developmentMockEnabled = canExposeMockOtpCode();
+    const developmentTextOtpEnabled = hasDevelopmentWhatsAppTextOtpRecipients();
+    const whatsappProvider = process.env.WHATSAPP_PROVIDER?.trim().toLowerCase();
+    const realWhatsappProvider = ['cloud', 'whatsapp-cloud'].includes(whatsappProvider ?? '');
+    const whatsappProductionConfigured = Boolean(
+      realWhatsappProvider &&
       process.env.WHATSAPP_PHONE_NUMBER_ID &&
       process.env.WHATSAPP_ACCESS_TOKEN &&
       process.env.WHATSAPP_TEMPLATE_OTP,
+    );
+    const whatsappTestConfigured = Boolean(
+      whatsappEnabled &&
+      developmentTextOtpEnabled &&
+      realWhatsappProvider &&
+      process.env.WHATSAPP_PHONE_NUMBER_ID &&
+      process.env.WHATSAPP_ACCESS_TOKEN,
     );
     const smtpConfigured = Boolean(process.env.SMTP_USER && process.env.SMTP_APP_PASSWORD);
     const googleConfigured = Boolean(
@@ -65,11 +83,22 @@ export class IntegrationStatusController {
     );
     return {
       whatsapp: {
-        mode: whatsappEnabled && whatsappConfigured ? 'real' : 'mock',
-        configured: whatsappConfigured,
+        mode: whatsappTestConfigured
+          ? 'testing'
+          : whatsappEnabled && whatsappProductionConfigured
+            ? 'real'
+            : developmentMockEnabled
+              ? 'development'
+              : 'unavailable',
+        configured: whatsappTestConfigured || whatsappProductionConfigured,
       },
       email: {
-        mode: process.env.SMTP_ENABLED === 'true' && smtpConfigured ? 'real' : 'mock',
+        mode:
+          smtpEnabled && smtpConfigured
+            ? 'real'
+            : developmentMockEnabled
+              ? 'development'
+              : 'unavailable',
         configured: smtpConfigured,
       },
       googleCalendar: {

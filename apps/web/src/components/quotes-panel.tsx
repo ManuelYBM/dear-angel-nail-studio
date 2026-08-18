@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { apiFetch } from '@/lib/api';
-import type { CurrentUser, CustomQuote, TechnicianSummary } from '@/lib/api';
+import type { CurrentUser, CustomQuote, QuoteStatus, TechnicianSummary } from '@/lib/api';
 import styles from './quotes.module.css';
 import portal from './portal.module.css';
 
@@ -13,11 +13,12 @@ const money = new Intl.NumberFormat('es-MX', {
   currency: 'MXN',
   maximumFractionDigits: 0,
 });
-const labels = {
+const labels: Record<QuoteStatus, string> = {
   PENDING_REVIEW: 'Pendiente de revisión',
   IN_REVIEW: 'En revisión',
   APPROVED: 'Lista para reservar',
   REJECTED: 'Requiere cambios',
+  CANCELLED: 'Cancelada por ti',
 };
 
 export function QuotesPanel() {
@@ -26,6 +27,7 @@ export function QuotesPanel() {
   const [technicians, setTechnicians] = useState<TechnicianSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [cancellingId, setCancellingId] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -95,6 +97,20 @@ export function QuotesPanel() {
       await load();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'No pudimos guardar la revisión.');
+    }
+  }
+
+  async function cancelQuote(quote: CustomQuote) {
+    if (!window.confirm('¿Cancelar esta solicitud de cotización?')) return;
+    setCancellingId(quote.id);
+    setError('');
+    try {
+      await apiFetch(`/catalog/quotes/${quote.id}/cancel`, { method: 'PATCH' });
+      await load();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No pudimos cancelar la cotización.');
+    } finally {
+      setCancellingId('');
     }
   }
 
@@ -173,6 +189,17 @@ export function QuotesPanel() {
                 </Link>
               ) : null}
             </div>
+          ) : null}
+          {user?.role === 'CLIENT' &&
+          (quote.status === 'PENDING_REVIEW' || quote.status === 'IN_REVIEW') ? (
+            <button
+              className={portal.dangerButton}
+              disabled={cancellingId === quote.id}
+              onClick={() => void cancelQuote(quote)}
+              type="button"
+            >
+              {cancellingId === quote.id ? 'Cancelando…' : 'Cancelar solicitud'}
+            </button>
           ) : null}
           {user?.role === 'NAIL_TECHNICIAN' && quote.status === 'PENDING_REVIEW' ? (
             <button className={portal.primaryButton} onClick={() => claim(quote.id)} type="button">

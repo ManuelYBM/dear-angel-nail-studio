@@ -7,6 +7,7 @@ import type { FormEvent } from 'react';
 import { apiFetch } from '@/lib/api';
 import type { ChallengeResult } from '@/lib/api';
 import { PasswordField } from './password-field';
+import { PhoneField } from './phone-field';
 import styles from './portal.module.css';
 
 export function RecoveryForm() {
@@ -83,7 +84,7 @@ export function RecoveryForm() {
           <div className={styles.notice}>Enviamos un código a {recovery.destination}.</div>
           {recovery.debugCode ? (
             <div className={styles.mockCode}>
-              Código de prueba para esta demostración:
+              Código de depuración devuelto por el entorno local:
               <strong>{recovery.debugCode}</strong>
             </div>
           ) : null}
@@ -126,10 +127,15 @@ export function RecoveryForm() {
   return (
     <div className={styles.card}>
       <form className={styles.form} onSubmit={requestCode}>
-        <div className={styles.field}>
-          <label htmlFor="identifier">Teléfono o correo</label>
-          <input id="identifier" name="identifier" required />
-        </div>
+        <PhoneField
+          allowEmail
+          autoComplete="username"
+          id="identifier"
+          label="Teléfono o correo"
+          name="identifier"
+          placeholder="999 123 4567 o correo@ejemplo.com"
+          required
+        />
         {acceptedWithoutChallenge ? (
           <div className={styles.notice}>
             Si existe un perfil con esos datos, recibirá las instrucciones de recuperación.

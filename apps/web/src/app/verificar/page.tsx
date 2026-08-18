@@ -9,9 +9,8 @@ export default function VerifyPage() {
   return (
     <PortalShell
       eyebrow="Un último detalle"
-      hideAnonymousSession
       title="Confirma tu WhatsApp."
-      intro="Escribe el código de seis dígitos que enviamos a tu número. Caduca en diez minutos."
+      intro="Confirma tu número con el código de seis dígitos. Si saliste antes o el código caducó, puedes solicitar uno nuevo aquí."
       aside={
         <>
           <h2>¿Por qué lo verificamos?</h2>

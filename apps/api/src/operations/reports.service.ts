@@ -50,7 +50,11 @@ export class ReportsService {
         this.designRows(range, 5),
         this.clientRows(range, 5),
         this.prisma.user.count({
-          where: { role: 'CLIENT', createdAt: { gte: range.start, lt: range.endExclusive } },
+          where: {
+            role: 'CLIENT',
+            registrationExpiresAt: null,
+            createdAt: { gte: range.start, lt: range.endExclusive },
+          },
         }),
       ],
     );
@@ -280,7 +284,7 @@ export class ReportsService {
       .filter((id): id is string => Boolean(id));
     const [clients, completed, visits] = await Promise.all([
       this.prisma.user.findMany({
-        where: { id: { in: clientIds } },
+        where: { id: { in: clientIds }, registrationExpiresAt: null },
         select: { id: true, fullName: true, phone: true, createdAt: true },
       }),
       this.prisma.appointment.groupBy({
@@ -610,7 +614,7 @@ export class ReportsService {
     return {
       appointments: 'Citas',
       deposits: 'Anticipos',
-      clients: 'Clientela',
+      clients: 'Clientes',
       designs: 'Diseños',
       audit: 'Auditoría',
     }[dataset];

@@ -12,6 +12,8 @@ import { BootstrapAdminService } from './bootstrap-admin.service';
 import { ChallengeService } from './challenge.service';
 import { MessagingService } from './messaging.service';
 import { PasswordService } from './password.service';
+import { PendingRegistrationBootstrapService } from './pending-registration-bootstrap.service';
+import { PendingRegistrationService } from './pending-registration.service';
 import { PhoneService } from './phone.service';
 import { RolesGuard } from './roles.guard';
 import { SessionService } from './session.service';
@@ -20,6 +22,8 @@ import { SessionService } from './session.service';
   controllers: [AuthController, AdminUsersController],
   providers: [
     PasswordService,
+    PendingRegistrationBootstrapService,
+    PendingRegistrationService,
     PhoneService,
     MessagingService,
     ChallengeService,
@@ -32,6 +36,13 @@ import { SessionService } from './session.service';
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
-  exports: [SessionService, PasswordService, PhoneService, AuditService, MessagingService],
+  exports: [
+    SessionService,
+    PasswordService,
+    PhoneService,
+    AuditService,
+    MessagingService,
+    PendingRegistrationService,
+  ],
 })
 export class IdentityModule {}

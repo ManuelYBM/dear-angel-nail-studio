@@ -24,7 +24,12 @@ import type {
   ReceiptAcceptanceDto,
   ReviewDepositDto,
 } from './payments.dto';
-import { canReviewDeposit, canUploadReceipt, confirmationCode } from './payment.rules';
+import {
+  canReviewDeposit,
+  canUploadReceipt,
+  confirmationCode,
+  paymentReviewActionUrl,
+} from './payment.rules';
 
 export interface UploadedReceipt {
   buffer: Buffer;
@@ -216,18 +221,20 @@ export class PaymentsService {
         where: { role: 'ADMIN', status: 'ACTIVE' },
         select: { id: true },
       });
-      await this.notifications.notifyMany(
-        administrators.map(({ id }) => id),
-        {
-          kind: 'PAYMENT',
-          title: 'Nuevo anticipo por revisar',
-          body: `${deposit.appointment.client?.fullName ?? 'Una clienta o cliente'} subió su comprobante.`,
-          actionUrl: '/administracion/anticipos',
-          templateKey: 'payment_update',
-          dedupePrefix: `deposit-uploaded:${deposit.id}`,
-          external: true,
-        },
-      );
+      await this.notifications
+        .notifyMany(
+          administrators.map(({ id }) => id),
+          {
+            kind: 'PAYMENT',
+            title: 'Nuevo anticipo por revisar',
+            body: `${deposit.appointment.client?.fullName ?? 'Una clienta o cliente'} subió su comprobante.`,
+            actionUrl: '/administracion/anticipos',
+            templateKey: 'payment_update',
+            dedupePrefix: `deposit-uploaded:${deposit.id}`,
+            external: true,
+          },
+        )
+        .catch(() => null);
       return { deposit: this.safeDeposit(deposit, false) };
     } catch (error) {
       await this.storage.removeObject(objectKey).catch(() => undefined);
@@ -254,6 +261,23 @@ export class PaymentsService {
     }
     const now = new Date();
     const deposit = await this.prisma.$transaction(async (tx) => {
+      const appointmentChanged = await tx.appointment.updateMany({
+        where: {
+          id: current.appointmentId,
+          status: 'PENDING_PAYMENT',
+          technicianId: current.appointment.technicianId,
+          startAt: current.appointment.startAt,
+          endAt: current.appointment.endAt,
+        },
+        data: {
+          status: dto.decision === 'APPROVED' ? 'CONFIRMED' : 'CANCELLED',
+          holdExpiresAt: null,
+          cancelledAt: dto.decision === 'REJECTED' ? now : null,
+        },
+      });
+      if (appointmentChanged.count !== 1) {
+        throw new ConflictException('La cita cambió mientras se revisaba el anticipo.');
+      }
       const changed = await tx.depositPayment.updateMany({
         where: { id: depositId, status: 'PENDING_REVIEW' },
         data: {
@@ -266,14 +290,6 @@ export class PaymentsService {
         },
       });
       if (changed.count !== 1) throw new ConflictException('El anticipo acaba de ser revisado.');
-      await tx.appointment.update({
-        where: { id: current.appointmentId },
-        data: {
-          status: dto.decision === 'APPROVED' ? 'CONFIRMED' : 'CANCELLED',
-          holdExpiresAt: null,
-          cancelledAt: dto.decision === 'REJECTED' ? now : null,
-        },
-      });
       return tx.depositPayment.findUniqueOrThrow({
         where: { id: depositId },
         include: this.depositInclude,
@@ -300,7 +316,7 @@ export class PaymentsService {
             dto.decision === 'APPROVED'
               ? `Aprobamos el anticipo. Tu cita con ${deposit.appointment.technician.fullName} ya está confirmada.`
               : `El comprobante no fue aprobado.${dto.notes?.trim() ? ` Motivo: ${dto.notes.trim()}` : ''}`,
-          actionUrl: dto.decision === 'APPROVED' ? '/agenda' : '/anticipo',
+          actionUrl: paymentReviewActionUrl(dto.decision, deposit.appointmentId),
           templateKey: 'payment_update',
           dedupeKey: `deposit-reviewed:${deposit.id}:client`,
           external: true,
@@ -376,7 +392,7 @@ export class PaymentsService {
       });
       if (!appointments.length) return 0;
       const ids = appointments.map(({ id }) => id);
-      await tx.appointment.updateMany({
+      const changed = await tx.appointment.updateMany({
         where: { id: { in: ids }, status: 'HELD' },
         data: { status: 'EXPIRED' },
       });
@@ -384,7 +400,7 @@ export class PaymentsService {
         where: { appointmentId: { in: ids }, status: 'AWAITING_RECEIPT' },
         data: { status: 'EXPIRED' },
       });
-      return ids.length;
+      return changed.count;
     });
     return { expired };
   }

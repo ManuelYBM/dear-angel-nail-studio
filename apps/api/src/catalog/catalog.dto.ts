@@ -38,6 +38,15 @@ export class CatalogQueryDto {
   favorites?: boolean;
 }
 
+export class PublicCatalogQueryDto extends CatalogQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(6)
+  limit?: number;
+}
+
 export class CatalogDesignDto {
   @IsString()
   @MinLength(2)

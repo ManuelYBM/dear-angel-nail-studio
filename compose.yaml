@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dear_angel_local_password}
       TZ: ${TZ:-America/Merida}
     ports:
-      - '5432:5432'
+      - '127.0.0.1:5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -25,7 +25,7 @@ services:
     restart: unless-stopped
     command: ['redis-server', '--appendonly', 'yes']
     ports:
-      - '6379:6379'
+      - '127.0.0.1:6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
@@ -42,8 +42,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-dear_angel}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-dear_angel_minio_password}
     ports:
-      - '9000:9000'
-      - '9001:9001'
+      - '127.0.0.1:9000:9000'
+      - '127.0.0.1:9001:9001'
     volumes:
       - minio_data:/data
     healthcheck:
@@ -59,7 +59,7 @@ services:
       dockerfile: docker/Dockerfile.api
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: development
       PORT: 3001
       TZ: ${TZ:-America/Merida}
       DATABASE_URL: postgresql://${POSTGRES_USER:-dear_angel}:${POSTGRES_PASSWORD:-dear_angel_local_password}@postgres:5432/${POSTGRES_DB:-dear_angel}?schema=public
@@ -74,13 +74,15 @@ services:
       SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-da_session}
       SESSION_TTL_DAYS: ${SESSION_TTL_DAYS:-30}
       OTP_PEPPER: ${OTP_PEPPER:-dear_angel_local_otp_pepper}
+      OTP_MOCK_DEBUG_ENABLED: ${OTP_MOCK_DEBUG_ENABLED:-false}
+      WHATSAPP_DEVELOPMENT_TEXT_OTP_RECIPIENTS: ${WHATSAPP_DEVELOPMENT_TEXT_OTP_RECIPIENTS:-}
       WHATSAPP_ENABLED: ${WHATSAPP_ENABLED:-false}
       WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-mock}
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
       WHATSAPP_BUSINESS_ACCOUNT_ID: ${WHATSAPP_BUSINESS_ACCOUNT_ID:-}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
       WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
-      WHATSAPP_GRAPH_API_VERSION: ${WHATSAPP_GRAPH_API_VERSION:-v23.0}
+      WHATSAPP_GRAPH_API_VERSION: ${WHATSAPP_GRAPH_API_VERSION:-v26.0}
       WHATSAPP_TEMPLATE_LANGUAGE: ${WHATSAPP_TEMPLATE_LANGUAGE:-es_MX}
       WHATSAPP_TEMPLATE_OTP: ${WHATSAPP_TEMPLATE_OTP:-}
       WHATSAPP_TEMPLATE_PASSWORD_RESET: ${WHATSAPP_TEMPLATE_PASSWORD_RESET:-}
@@ -93,7 +95,7 @@ services:
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
-      SMTP_USER: ${SMTP_USER:-miniyahirpro@gmail.com}
+      SMTP_USER: ${SMTP_USER:-}
       SMTP_APP_PASSWORD: ${SMTP_APP_PASSWORD:-}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Dear Angel Nail Studio}
       GOOGLE_CALENDAR_ENABLED: ${GOOGLE_CALENDAR_ENABLED:-false}
@@ -106,8 +108,10 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PHONE: ${ADMIN_PHONE:-}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
+      BACKGROUND_JOBS_MODE: worker
+      WORKER_SHARED_SECRET: ${WORKER_SHARED_SECRET:-dear-angel-local-worker-secret-change-me}
     ports:
-      - '3001:3001'
+      - '127.0.0.1:3001:3001'
     depends_on:
       postgres:
         condition: service_healthy
@@ -134,14 +138,18 @@ services:
       dockerfile: docker/Dockerfile.worker
     restart: unless-stopped
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: development
       PORT: 3002
       TZ: ${TZ:-America/Merida}
       REDIS_URL: redis://redis:6379
+      API_INTERNAL_URL: http://api:3001/api
+      WORKER_SHARED_SECRET: ${WORKER_SHARED_SECRET:-dear-angel-local-worker-secret-change-me}
     ports:
-      - '3002:3002'
+      - '127.0.0.1:3002:3002'
     depends_on:
       redis:
+        condition: service_healthy
+      api:
         condition: service_healthy
     healthcheck:
       test:
@@ -169,7 +177,7 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/backend}
       API_INTERNAL_URL: http://api:3001/api
     ports:
-      - '3000:3000'
+      - '127.0.0.1:3000:3000'
     depends_on:
       api:
         condition: service_healthy
@@ -185,33 +193,6 @@ services:
       timeout: 5s
       retries: 12
       start_period: 20s
-
-  preview:
-    image: cloudflare/cloudflared:latest
-    profiles: ['preview']
-    restart: unless-stopped
-    command: ['tunnel', '--no-autoupdate', '--protocol', 'http2', '--url', 'http://web:3000']
-    depends_on:
-      web:
-        condition: service_healthy
-
-  stable-preview:
-    image: ngrok/ngrok:latest
-    profiles: ['stable-preview']
-    restart: unless-stopped
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
-    command:
-      [
-        'http',
-        '--url=https://${NGROK_DOMAIN:-configure-your-domain.ngrok-free.app}',
-        '--log=stdout',
-        '--log-format=json',
-        'http://web:3000',
-      ]
-    depends_on:
-      web:
-        condition: service_healthy
 
   backup:
     build:
@@ -233,7 +214,9 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-dear_angel_minio_password}
       MINIO_BUCKET: ${MINIO_BUCKET:-dear-angel-private}
       BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-604800}
+      BACKUP_RETRY_SECONDS: ${BACKUP_RETRY_SECONDS:-300}
       BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-90}
+      BACKUP_HEALTH_GRACE_SECONDS: ${BACKUP_HEALTH_GRACE_SECONDS:-3600}
     volumes:
       - ./backups:/backups
     depends_on:
@@ -242,7 +225,7 @@ services:
       minio:
         condition: service_healthy
     healthcheck:
-      test: ['CMD-SHELL', 'test -f /tmp/backup-ready']
+      test: ['CMD', '/opt/dear-angel/backup-health.sh']
       interval: 30s
       timeout: 5s
       retries: 5

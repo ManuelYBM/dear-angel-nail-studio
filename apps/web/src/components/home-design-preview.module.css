@@ -1,0 +1,270 @@
+.section {
+  padding-block: 100px;
+  background:
+    radial-gradient(circle at 10% 12%, rgb(245 214 220 / 48%), transparent 26%),
+    linear-gradient(145deg, #fffaf2, #f8f2f7);
+}
+
+.inner {
+  width: min(1180px, calc(100% - 40px));
+  margin-inline: auto;
+}
+
+.heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 42px;
+}
+
+.heading > div {
+  max-width: 690px;
+}
+
+.heading span {
+  color: #a8687d;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.heading h2 {
+  margin: 14px 0 14px;
+  color: #49383f;
+  font-family: Georgia, serif;
+  font-size: clamp(38px, 5vw, 58px);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+
+.heading p {
+  margin: 0;
+  color: #705c64;
+  line-height: 1.7;
+}
+
+.catalogLink,
+.mobileCatalogLink,
+.fallback a {
+  flex: 0 0 auto;
+  padding: 12px 17px;
+  border: 1px solid rgb(168 104 125 / 26%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 58%);
+  color: #a8687d;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.card,
+.skeleton {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid rgb(168 104 125 / 14%);
+  border-radius: 26px;
+  background: rgb(255 255 255 / 86%);
+  box-shadow: 0 18px 48px rgb(73 56 63 / 9%);
+}
+
+.card {
+  scroll-snap-align: start;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.card:hover {
+  box-shadow: 0 26px 60px rgb(73 56 63 / 13%);
+  transform: translateY(-4px);
+}
+
+.image {
+  position: relative;
+  display: grid;
+  aspect-ratio: 4 / 3;
+  place-items: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f8dfdf, #dcd0eb);
+}
+
+.image img {
+  object-fit: cover;
+}
+
+.image small {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgb(255 250 242 / 91%);
+  color: #a97b36;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.placeholder {
+  color: rgb(169 123 54 / 58%);
+  font-family: Georgia, serif;
+  font-size: 40px;
+}
+
+.body {
+  padding: 20px;
+}
+
+.meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #a8687d;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.body h3 {
+  margin: 10px 0 17px;
+  color: #49383f;
+  font-family: Georgia, serif;
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.body footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 15px;
+  border-top: 1px solid rgb(168 104 125 / 12%);
+}
+
+.body footer strong {
+  color: #a97b36;
+  font-family: Georgia, serif;
+  font-size: 20px;
+  white-space: nowrap;
+}
+
+.body footer a {
+  color: #a8687d;
+  font-size: 11px;
+  font-weight: 750;
+  text-align: right;
+  text-decoration: none;
+}
+
+.skeleton {
+  min-height: 390px;
+  background: linear-gradient(100deg, #f7ece8 20%, #fffaf2 42%, #f1e7ef 65%);
+  background-size: 220% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+.fallback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px;
+  border: 1px dashed rgb(168 104 125 / 24%);
+  border-radius: 22px;
+  color: #705c64;
+}
+
+.mobileCatalogLink {
+  display: none;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@media (max-width: 800px) {
+  .section {
+    padding-block: 78px;
+  }
+
+  .heading {
+    align-items: flex-start;
+  }
+
+  .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cards > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    width: calc(50% - 11px);
+  }
+}
+
+@media (max-width: 620px) {
+  .inner {
+    width: min(calc(100% - 28px), 1180px);
+  }
+
+  .heading {
+    margin-bottom: 30px;
+  }
+
+  .catalogLink {
+    display: none;
+  }
+
+  .cards {
+    width: calc(100% + 14px);
+    grid-auto-columns: minmax(260px, 84vw);
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    gap: 14px;
+    overflow-x: auto;
+    padding: 3px 14px 20px 2px;
+    scroll-padding-inline: 2px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .cards::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cards > :last-child:nth-child(odd) {
+    width: auto;
+    grid-column: auto;
+  }
+
+  .mobileCatalogLink {
+    display: inline-flex;
+    margin-top: 8px;
+  }
+
+  .fallback {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .skeleton {
+    animation: none;
+    transition: none;
+  }
+}

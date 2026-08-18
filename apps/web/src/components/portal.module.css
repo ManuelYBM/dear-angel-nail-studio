@@ -1,5 +1,6 @@
 .page {
-  min-height: 100vh;
+  min-height: calc(100vh - var(--site-header-height));
+  min-height: calc(100dvh - var(--site-header-height));
   position: relative;
   overflow: hidden;
   background:
@@ -18,77 +19,11 @@
   box-shadow: 0 0 0 70px rgb(255 255 255 / 20%);
 }
 
-.header {
-  width: min(1180px, calc(100% - 40px));
-  position: relative;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-inline: auto;
-  padding-block: 24px;
-}
-
-.headerStart {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 13px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: #49383f;
-  font-family: Georgia, serif;
-  font-size: 20px;
-  text-decoration: none;
-}
-
-.monogram {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border: 1px solid rgb(169 123 54 / 42%);
-  border-radius: 50%;
-  color: #a97b36;
-  font-size: 13px;
-  letter-spacing: -2px;
-}
-
-.headerLink,
 .textLink {
   color: #7f668f;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
-}
-
-.backButton {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  flex: 0 0 auto;
-  padding: 0;
-  place-items: center;
-  border: 1px solid rgb(168 104 125 / 18%);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 52%);
-  color: #7f668f;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.backButton span {
-  font-size: 22px;
-  line-height: 1;
-}
-
-.mobilePortalNavigation {
-  display: none;
 }
 
 .layout {
@@ -100,6 +35,10 @@
   gap: 52px;
   margin: 72px auto 0;
   padding-bottom: 80px;
+}
+
+.layoutSingle {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .layoutWide {
@@ -186,7 +125,19 @@
 .gridTwo {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 16px;
+}
+
+.contactGrid {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.6fr) minmax(0, 1.4fr);
+  gap: 16px;
+}
+
+.contactGrid > .field select {
+  padding-inline: 12px;
+  font-size: 14px;
 }
 
 .field {
@@ -354,6 +305,36 @@
   font-size: 12px;
 }
 
+.centeredHint {
+  margin: -4px 0 0;
+  justify-self: center;
+  color: #8b777f;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.secondaryActionLink {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  border: 1px solid rgb(168 104 125 / 24%);
+  border-radius: 999px;
+  background: #fffaf2;
+  color: #a8687d;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.recoveryActions {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+}
+
 .buttonRow {
   flex-wrap: wrap;
 }
@@ -371,6 +352,23 @@
 .notice {
   background: #f8f0e4;
   color: #705c64;
+}
+
+.selectionNotice {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 4px 16px;
+}
+
+.selectionNotice strong {
+  color: #5e4952;
+}
+
+.selectionNotice span {
+  color: #8d747e;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .error {
@@ -580,6 +578,66 @@
   font-weight: 400;
 }
 
+.personalNavigation {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.personalNavCard {
+  min-height: 126px;
+  align-content: center;
+  padding-right: 52px;
+  position: relative;
+}
+
+.personalNavCard::after {
+  width: 30px;
+  height: 30px;
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(168 104 125 / 10%);
+  color: #a8687d;
+  content: '→';
+  font-size: 16px;
+  transform: translateY(-50%);
+}
+
+.personalNavCard small {
+  max-width: 280px;
+  color: #806b73;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.accountSecurity {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.7fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: 30px;
+}
+
+.accountSectionHeader span {
+  color: #a8687d;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.accountSectionHeader h2 {
+  margin: 7px 0 8px;
+}
+
+.accountSectionHeader p {
+  margin: 0;
+  color: #705c64;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .requiredSecurity > p {
   margin: -5px 0 18px;
   color: #705c64;
@@ -674,15 +732,6 @@
   line-height: 1.55;
 }
 
-.policyStrip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 20px;
-}
-
-.policyStrip span,
-.policyStrip a,
 .inheritBadge,
 .closedLabel {
   padding: 7px 10px;
@@ -691,11 +740,6 @@
   color: #705c64;
   font-size: 10px;
   font-weight: 700;
-}
-
-.policyStrip a {
-  color: #a8687d;
-  text-decoration: none;
 }
 
 .slotGrid {
@@ -998,6 +1042,22 @@
   text-transform: capitalize;
 }
 
+.overrideList > div > span {
+  display: grid;
+  gap: 3px;
+}
+
+.overrideList button {
+  align-self: center;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #fff0f1;
+  color: #914651;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .overrideList strong {
   color: #49383f;
   font-weight: 600;
@@ -1023,6 +1083,11 @@
     grid-template-columns: 1fr;
   }
 
+  .accountSecurity {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
   .bookingGrid,
   .agendaLayout,
   .scheduleLayout {
@@ -1031,49 +1096,9 @@
 }
 
 @media (max-width: 560px) {
-  .header,
   .layout,
   .layoutWide {
     width: min(calc(100% - 28px), 1180px);
-  }
-
-  .header {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .headerStart {
-    gap: 8px;
-  }
-
-  .backButton,
-  .monogram {
-    width: 38px;
-    height: 38px;
-  }
-
-  .brandName {
-    display: none;
-  }
-
-  .mobilePortalNavigation {
-    display: flex;
-    width: 100%;
-    gap: 8px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .mobilePortalNavigation a {
-    flex: 0 0 auto;
-    padding: 8px 11px;
-    border: 1px solid rgb(168 104 125 / 16%);
-    border-radius: 999px;
-    background: rgb(255 255 255 / 52%);
-    color: #806071;
-    font-size: 10px;
-    font-weight: 700;
-    text-decoration: none;
   }
 
   .content h1 {
@@ -1084,7 +1109,8 @@
     padding: 20px;
   }
 
-  .gridTwo {
+  .gridTwo,
+  .contactGrid {
     grid-template-columns: 1fr;
   }
 
@@ -1092,6 +1118,10 @@
   .toolbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .selectionNotice {
+    grid-template-columns: 1fr;
   }
 
   .toolbarGroup {
@@ -1105,6 +1135,23 @@
   .accountNavigation,
   .slotGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .personalNavigation {
+    grid-template-columns: 1fr;
+  }
+
+  .personalNavCard {
+    min-height: 112px;
+  }
+
+  .accountSecurity .buttonRow {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .accountSecurity .buttonRow button {
+    width: 100%;
   }
 
   .bookingSummary {

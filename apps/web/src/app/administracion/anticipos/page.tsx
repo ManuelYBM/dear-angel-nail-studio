@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: 'Administrar anticipos' };
 export default function AdminPaymentsPage() {
   return (
     <PortalShell
+      access="admin"
       eyebrow="Reservas y transferencias"
       title="Anticipos bajo control."
       intro="Configura los datos SPEI y revisa cada comprobante antes de confirmar una cita."

@@ -16,7 +16,7 @@ const money = new Intl.NumberFormat('es-MX', {
 
 export function CatalogPanel() {
   const [designs, setDesigns] = useState<CatalogDesign[]>([]);
-  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [user, setUser] = useState<CurrentUser | null | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [technique, setTechnique] = useState('');
   const [favorites, setFavorites] = useState(false);
@@ -24,19 +24,39 @@ export function CatalogPanel() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    void Promise.all([
-      apiFetch<{ items: CatalogDesign[] }>('/catalog/designs/personalized').catch(() =>
-        apiFetch<{ items: CatalogDesign[] }>('/catalog/designs'),
-      ),
-      apiFetch<{ user: CurrentUser }>('/auth/me').catch(() => null),
-    ])
-      .then(([result, session]) => {
-        setDesigns(result.items);
-        setUser(session?.user ?? null);
-      })
-      .catch(() => setError('No pudimos abrir el catálogo.'))
-      .finally(() => setLoading(false));
+    let active = true;
+    let requestId = 0;
+
+    const loadCatalog = async () => {
+      const currentRequest = ++requestId;
+      setLoading(true);
+      setError('');
+      const session = await apiFetch<{ user: CurrentUser }>('/auth/me').catch(() => null);
+      if (!active || currentRequest !== requestId) return;
+      setUser(session?.user ?? null);
+      setFavorites(false);
+      try {
+        const result = await apiFetch<{ items: CatalogDesign[] }>(
+          session?.user.role === 'CLIENT' ? '/catalog/designs/personalized' : '/catalog/designs',
+        ).catch(() => apiFetch<{ items: CatalogDesign[] }>('/catalog/designs'));
+        if (active && currentRequest === requestId) setDesigns(result.items);
+      } catch {
+        if (active && currentRequest === requestId) setError('No pudimos abrir el catálogo.');
+      } finally {
+        if (active && currentRequest === requestId) setLoading(false);
+      }
+    };
+
+    void loadCatalog();
+    window.addEventListener('dearangel:session-changed', loadCatalog);
+    return () => {
+      active = false;
+      window.removeEventListener('dearangel:session-changed', loadCatalog);
+    };
   }, []);
+
+  const isStaff = user?.role === 'ADMIN' || user?.role === 'NAIL_TECHNICIAN';
+  const canUseClientActions = user === null || user?.role === 'CLIENT';
 
   const techniques = useMemo(
     () => [...new Set(designs.map((design) => design.technique))].sort(),
@@ -50,13 +70,17 @@ export function CatalogPanel() {
           .toLocaleLowerCase('es-MX')
           .includes(term)) &&
       (!technique || design.technique === technique) &&
-      (!favorites || design.favorite)
+      (!canUseClientActions || !favorites || design.favorite)
     );
   });
 
   async function toggleFavorite(design: CatalogDesign) {
     if (!user) {
       window.location.href = '/acceso';
+      return;
+    }
+    if (user.mustChangePassword) {
+      window.location.href = '/mi-cuenta';
       return;
     }
     if (user.role !== 'CLIENT') return;
@@ -96,14 +120,20 @@ export function CatalogPanel() {
             </option>
           ))}
         </select>
-        <button
-          aria-pressed={favorites}
-          className={favorites ? styles.filterActive : ''}
-          onClick={() => setFavorites((value) => !value)}
-          type="button"
-        >
-          ♡ Mis favoritos
-        </button>
+        {canUseClientActions ? (
+          <button
+            aria-pressed={favorites}
+            className={favorites ? styles.filterActive : ''}
+            onClick={() => setFavorites((value) => !value)}
+            type="button"
+          >
+            ♡ Mis favoritos
+          </button>
+        ) : user?.role === 'ADMIN' ? (
+          <Link className={styles.filterLink} href="/administracion/catalogo">
+            Administrar catálogo
+          </Link>
+        ) : null}
       </div>
       {loading ? <div className={portal.loading}>Preparando inspiración para ti…</div> : null}
       {error ? <div className={portal.error}>{error}</div> : null}
@@ -111,8 +141,12 @@ export function CatalogPanel() {
         <div className={styles.empty}>
           <span>✦</span>
           <strong>Aún no hay diseños con esos filtros.</strong>
-          <p>Prueba otra búsqueda o crea una cotización personalizada.</p>
-          <Link href="/cotizar">Cotizar mi idea</Link>
+          <p>
+            {isStaff
+              ? 'Prueba otra búsqueda o revisa nuevamente más tarde.'
+              : 'Prueba otra búsqueda o crea una cotización personalizada.'}
+          </p>
+          {canUseClientActions ? <Link href="/cotizar">Cotizar mi idea</Link> : null}
         </div>
       ) : null}
       <div className={styles.designGrid}>
@@ -128,17 +162,19 @@ export function CatalogPanel() {
                 <span aria-hidden="true">DA</span>
               )}
               {design.images.some((image) => image.filename.endsWith('-demo.png')) ? (
-                <small>Imagen de demostración</small>
+                <small>Imagen de muestra</small>
               ) : design.featured ? (
                 <small>Favorito del estudio</small>
               ) : null}
-              <button
-                aria-label={design.favorite ? 'Quitar de favoritos' : 'Guardar en favoritos'}
-                onClick={() => toggleFavorite(design)}
-                type="button"
-              >
-                {design.favorite ? '♥' : '♡'}
-              </button>
+              {canUseClientActions ? (
+                <button
+                  aria-label={design.favorite ? 'Quitar de favoritos' : 'Guardar en favoritos'}
+                  onClick={() => toggleFavorite(design)}
+                  type="button"
+                >
+                  {design.favorite ? '♥' : '♡'}
+                </button>
+              ) : null}
             </div>
             <div className={styles.designBody}>
               <div>
@@ -157,7 +193,9 @@ export function CatalogPanel() {
               </div>
               <footer>
                 <strong>{money.format(design.priceCents / 100)}</strong>
-                <Link href={`/reservar?designId=${design.id}`}>Elegir diseño</Link>
+                {canUseClientActions ? (
+                  <Link href={`/reservar?designId=${design.id}`}>Elegir diseño</Link>
+                ) : null}
               </footer>
             </div>
           </article>

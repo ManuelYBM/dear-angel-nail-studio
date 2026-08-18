@@ -18,6 +18,17 @@ const icons = {
   SYSTEM: 'DA',
 } as const;
 
+type Delivery = UserNotification['deliveries'][number];
+
+function deliveryLabel(delivery: Delivery) {
+  if (delivery.status === 'SENT') return 'enviado';
+  if (delivery.status === 'PROCESSING') return 'enviando';
+  if (delivery.status === 'SKIPPED') return 'omitido';
+  if (delivery.status === 'FAILED')
+    return delivery.attempts >= 5 ? 'falló tras 5 intentos' : 'reintento programado';
+  return 'pendiente';
+}
+
 export function NotificationsPanel() {
   const router = useRouter();
   const [items, setItems] = useState<UserNotification[] | null>(null);
@@ -70,7 +81,12 @@ export function NotificationsPanel() {
       {items.length ? (
         <div className={styles.list}>
           {items.map((item) => {
-            const failed = item.deliveries.some((delivery) => delivery.status === 'FAILED');
+            const retrying = item.deliveries.some(
+              (delivery) => delivery.status === 'FAILED' && delivery.attempts < 5,
+            );
+            const exhausted = item.deliveries.some(
+              (delivery) => delivery.status === 'FAILED' && delivery.attempts >= 5,
+            );
             return (
               <article
                 className={`${styles.item} ${!item.readAt ? styles.unread : ''}`}
@@ -95,11 +111,7 @@ export function NotificationsPanel() {
                         key={delivery.id}
                       >
                         {delivery.channel === 'WHATSAPP' ? 'WhatsApp' : 'Correo'} ·{' '}
-                        {delivery.status === 'SENT'
-                          ? 'enviado'
-                          : delivery.status === 'FAILED'
-                            ? 'reintentando'
-                            : 'pendiente'}
+                        {deliveryLabel(delivery)}
                       </span>
                     ))}
                   </div>
@@ -112,9 +124,15 @@ export function NotificationsPanel() {
                       Ver detalles →
                     </Link>
                   ) : null}
-                  {failed ? (
+                  {retrying ? (
                     <span className={styles.meta}>
-                      El aviso permanece aquí aunque el canal externo esté reintentando.
+                      El aviso permanece aquí mientras el canal externo prepara otro intento.
+                    </span>
+                  ) : null}
+                  {exhausted ? (
+                    <span className={styles.deliveryFailed}>
+                      No se pudo entregar por el canal externo después de cinco intentos; el aviso
+                      permanece disponible aquí.
                     </span>
                   ) : null}
                 </div>

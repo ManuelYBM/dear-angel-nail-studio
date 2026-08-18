@@ -36,6 +36,15 @@
   font: inherit;
 }
 
+.toolbar input:focus-visible,
+.toolbar select:focus-visible,
+.field input:focus-visible,
+.field select:focus-visible,
+.field textarea:focus-visible {
+  outline: 3px solid rgb(169 123 54 / 62%);
+  outline-offset: 2px;
+}
+
 .toolbar button,
 .exportButton,
 .saveButton,
@@ -443,6 +452,11 @@
   height: 1px;
   overflow: hidden;
   opacity: 0;
+}
+
+.uploadButton:has(input:focus-visible) {
+  outline: 3px solid rgb(169 123 54 / 62%);
+  outline-offset: 3px;
 }
 
 @media (max-width: 1050px) {

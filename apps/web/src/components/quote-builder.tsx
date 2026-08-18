@@ -102,6 +102,10 @@ export function QuoteBuilder() {
       window.location.href = '/acceso';
       return;
     }
+    if (user.mustChangePassword) {
+      window.location.href = '/mi-cuenta';
+      return;
+    }
     if (user.role !== 'CLIENT') {
       setError('Esta solicitud se envía desde una cuenta de clienta.');
       return;

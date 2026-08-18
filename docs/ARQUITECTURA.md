@@ -4,8 +4,8 @@
 
 | Campo                   | Valor                                 |
 | ----------------------- | ------------------------------------- |
-| Versión                 | 1.0                                   |
-| Fecha                   | 11 de agosto de 2026                  |
+| Versión                 | 1.1                                   |
+| Fecha                   | 14 de agosto de 2026                  |
 | Estilo                  | Monolito modular con worker asíncrono |
 | Ejecución inicial       | Docker Compose                        |
 | Zona horaria de negocio | `America/Merida`                      |
@@ -40,13 +40,13 @@ Infraestructura
   - WhatsApp, SMTP y Google Calendar
 ```
 
-Las capas interiores no dependen de detalles externos. WhatsApp, almacenamiento, correo y calendario se consumirán mediante contratos y adaptadores reemplazables.
+Las capas interiores no dependen de detalles externos. WhatsApp, almacenamiento, correo y calendario se consumen mediante contratos y adaptadores reemplazables.
 
 ## 3. Mapa de aplicaciones
 
 ### `apps/web`
 
-- Interfaz responsive y futura PWA.
+- Interfaz responsive y PWA instalable.
 - Experiencias de clienta, manicurista y administradora.
 - Validación de formularios para retroalimentación inmediata.
 - Consumo exclusivo de la API para reglas y datos persistentes.
@@ -60,9 +60,11 @@ Las capas interiores no dependen de detalles externos. WhatsApp, almacenamiento,
 
 ### `apps/worker`
 
-- Trabajos asíncronos y programados.
-- Recordatorios, reintentos de notificaciones y limpiezas.
-- Nunca decide por sí solo reglas que pertenezcan al dominio; ejecuta casos de uso de forma segura e idempotente.
+- Consumer y programadores BullMQ conectados a Redis.
+- Programa entregas de notificaciones, recordatorios, vencimiento de anticipos y retención de comprobantes.
+- No accede a PostgreSQL ni MinIO directamente: invoca endpoints internos de `apps/api` con `WORKER_SHARED_SECRET` en `x-worker-token`.
+- Reintenta cada trabajo hasta cinco veces con espera exponencial; la API conserva las reglas, transacciones e idempotencia del dominio.
+- Su health check exige Redis, programadores activos y una ejecución reciente aceptada por la API.
 
 ## 4. Mapa de módulos funcionales
 
@@ -83,17 +85,17 @@ Las capas interiores no dependen de detalles externos. WhatsApp, almacenamiento,
 | Reportes       | Indicadores, filtros y exportaciones                          |
 | Auditoría      | Registro inmutable de operaciones sensibles                   |
 
-Cada módulo expondrá casos de uso; no se permitirá que un controlador modifique tablas directamente.
+Cada módulo expone casos de uso; ningún controlador modifica tablas directamente.
 
 ## 5. Persistencia y concurrencia
 
 - PostgreSQL conserva la información transaccional.
 - Prisma administra el esquema y las migraciones versionadas.
-- Redis sostiene colas, tareas programadas y retenciones temporales.
+- Redis sostiene la cola BullMQ y sus programadores; las retenciones de citas permanecen persistidas en PostgreSQL.
 - MinIO simula almacenamiento S3 local para imágenes y comprobantes privados.
 - Los comprobantes nunca se publican como archivos estáticos.
 - PostgreSQL impide definitivamente los traslapes mediante una restricción de exclusión por manicurista e intervalo; la API agrega validaciones y mensajes comprensibles.
-- Todos los horarios se persistirán de forma no ambigua y se presentarán en `America/Merida`.
+- Todos los horarios se persisten de forma no ambigua y se presentan en `America/Merida`.
 
 ## 6. Convenciones
 
@@ -106,6 +108,7 @@ Cada módulo expondrá casos de uso; no se permitirá que un controlador modifiq
 - Migraciones aditivas y revisables; ningún cambio manual al esquema de producción.
 - Variables secretas solo mediante entorno y nunca en el repositorio.
 - Formato automático con Prettier y análisis estático con ESLint.
+- Prisma Client se regenera automáticamente antes de typecheck, lint, pruebas y build mediante los hooks `pre*` del workspace raíz.
 - Errores públicos claros, sin filtrar trazas, consultas ni secretos.
 
 ## 7. Estrategia de pruebas
@@ -124,9 +127,11 @@ Las pruebas con mayor riesgo se priorizan: ausencia de traslapes, control de per
 
 ## 8. Datos de demostración
 
-Se preparará un `seed` repetible con una administradora, varias manicuristas, clientas ficticias, horarios, diseños y recompensas. No contendrá teléfonos reales, contraseñas de producción, comprobantes reales ni credenciales externas.
+Existe un `seed` repetible con una administradora, varias manicuristas, clientas ficticias, horarios, diseños y recompensas. No contiene teléfonos reales, contraseñas de producción, comprobantes reales ni credenciales externas.
 
-El proveedor simulado de WhatsApp permitirá mostrar códigos y notificaciones localmente hasta conectar Meta Business.
+El proveedor simulado de WhatsApp permite demostrar los flujos sin Meta únicamente en desarrollo. El código OTP está deshabilitado por defecto y sólo se incluye en la respuesta cuando `NODE_ENV=development` y se habilita temporalmente `OTP_MOCK_DEBUG_ENABLED=true`; debe volver a `false` después de la prueba. Producción rechaza esa combinación.
+
+La web muestra siempre país y lada, normaliza teléfonos a E.164 y elimina cualquier `debugCode` de la sesión temporal de verificación. La API exige la lada en cada entrada telefónica y no aplica un país implícito. El proveedor real usa plantillas `AUTHENTICATION` con botón **Copiar código** y una versión configurable de Graph API.
 
 ## 9. Infraestructura local
 
@@ -140,11 +145,27 @@ El proveedor simulado de WhatsApp permitirá mostrar códigos y notificaciones l
 | MinIO API     |   9000 | Volumen `minio_data`         |
 | MinIO consola |   9001 | Volumen `minio_data`         |
 
-Los contenedores incluyen health checks y dependencias de arranque. La API no reporta disponibilidad hasta comprobar PostgreSQL, Redis y el bucket privado.
+Los contenedores incluyen health checks y dependencias de arranque. La API no reporta disponibilidad hasta comprobar PostgreSQL, Redis y el bucket privado. El Compose base enlaza todos estos puertos exclusivamente a `127.0.0.1`.
+
+### Separación de entornos
+
+- `compose.yaml` es la topología de desarrollo local. Sus valores predeterminados no son credenciales de producción.
+- `.env.example` usa `localhost` para base, Redis y MinIO y sirve como referencia de ejecución en Windows. `compose.yaml` inyecta directamente `postgres`, `redis` y `minio` como hosts internos de los contenedores.
+- El worker ejecutado en Windows no carga automáticamente el `.env` raíz, por lo que sus variables deben exportarse en la terminal.
+- `docker/compose.public.yaml` es un overlay obligatorio para los perfiles `preview` y `stable-preview`. Cambia API y worker a producción, deshabilita el OTP de depuración y exige secretos propios, URLs HTTPS y activación explícita de proveedores.
+- `.env.public.example` es la plantilla pública sin secretos; se copia como `.env.public`, archivo ignorado por Git y separado del entorno local.
+- El overlay fija el proyecto `dear-angel-public`; sus contenedores y volúmenes no reutilizan los de `dear-angel`. Ambos proyectos publican los mismos puertos del host, por lo que se ejecutan de forma alternada, nunca simultánea.
+- La publicación temporal siempre combina plantilla y ambos archivos: `docker compose --env-file .env.public -f compose.yaml -f docker/compose.public.yaml --profile <perfil> ...`.
 
 ## 10. Estado de evolución
 
-Identidad, roles, sesiones, agenda, catálogo, cotizaciones, fidelidad, anticipos, notificaciones y operación administrativa ya funcionan sobre esta base. Los avisos usan una bandeja interna y una salida persistente con reintentos; Google Calendar sincroniza únicamente eventos administrados por Dear Angel y cifra sus tokens.
+Identidad, roles, sesiones, agenda, catálogo, cotizaciones, fidelidad, anticipos, notificaciones y operación administrativa están implementados sobre esta base. Los avisos usan una bandeja interna y una salida persistente con reintentos; Google Calendar sincroniza únicamente eventos administrados por Dear Angel y cifra sus tokens.
+
+Una entrega marcada como `SENT` significa que Meta o SMTP la aceptó. La plataforma no afirma entrega ni lectura final porque el webhook de estados de Meta queda fuera del alcance inicial; el panel lo presenta como “Aceptado por proveedor”.
+
+El listado de agenda usa paginación por cursor y devuelve la política vigente junto con cada página. Esto permite que la interfaz muestre el límite de reprogramaciones y las horas de aviso configuradas sin duplicar constantes de negocio.
+
+Las cotizaciones se filtran en la API por clienta, apertura y manicurista responsable. Una solicitud abierta puede tomarse de forma atómica; después sólo la responsable y la administradora conservan acceso operativo. Las imágenes adjuntas usan la misma autorización y se entregan con caché privada. La clienta puede cancelarla mientras siga pendiente o en revisión. El catálogo mantiene hasta cinco imágenes ordenadas por diseño y cambia la portada reordenando la galería, sin borrar archivos válidos.
 
 El módulo `operations` concentra lecturas administrativas sin duplicar reglas transaccionales. Calcula métricas y reportes en `America/Merida`, permite exportar CSV y XLSX y expone el historial de auditoría solo a la administradora. Las exportaciones neutralizan entradas que podrían interpretarse como fórmulas de hoja de cálculo.
 
@@ -152,8 +173,12 @@ La identidad pública reside en `studio_settings`; logo e icono se guardan en Mi
 
 ## 11. Respaldo, restauración y entrega
 
-El servicio `backup` ejecuta `pg_dump` en formato comprimido y refleja el bucket privado en una carpeta temporal. Sólo después de generar manifiesto y sumas SHA-256 publica el archivo `.tar.gz`; una interrupción no produce una copia aparentemente válida. El respaldo no contiene variables de entorno ni secretos.
+El servicio `backup` ejecuta `pg_dump` en formato comprimido y refleja el bucket privado en una carpeta temporal. El `.tar.gz` se construye a partir del manifiesto y las sumas SHA-256 internas; después se crea un `.sha256` externo adyacente. `restore verify` exige y comprueba ambos antes de considerar íntegra la copia. El respaldo no contiene variables de entorno ni secretos.
 
-La restauración requiere `ALLOW_RESTORE=true`, valida que el archivo permanezca bajo `backups/` y rechaza rutas internas inseguras. La prueba rutinaria crea una base y bucket con nombres restringidos, verifica usuarios, migraciones y objetos, y elimina exclusivamente esos destinos temporales.
+El marcador de salud se persiste en el volumen de respaldos y se actualiza tanto en ejecuciones programadas como manuales. Los fallos conservan el último éxito verificable y activan reintentos breves sin publicar archivos parciales.
 
-Las cabeceras web aplican CSP y niegan carga en marcos; API y web niegan MIME sniffing y restringen permisos del navegador. En `NODE_ENV=production`, la API rechaza credenciales locales, URLs públicas sin HTTPS, CORS comodín e integraciones habilitadas sin sus claves.
+La restauración requiere `ALLOW_RESTORE=true`, valida que el archivo permanezca bajo `backups/` y rechaza rutas internas inseguras. El wrapper operativo verifica el respaldo antes de detener las aplicaciones y, si falla después de iniciar la mutación, las conserva detenidas para no servir un estado parcial. La prueba rutinaria crea una base y bucket con nombres restringidos, compara los objetos restaurados con el manifiesto, informa conteos de usuarios y migraciones y elimina exclusivamente esos destinos temporales.
+
+Las cabeceras web aplican CSP y niegan carga en marcos; API y web niegan MIME sniffing y restringen permisos del navegador. En `NODE_ENV=production`, la API rechaza credenciales locales, URLs públicas sin HTTPS, CORS comodín, OTP de depuración e integraciones habilitadas sin sus claves.
+
+Los mecanismos de respaldo, restauración aislada, E2E y ensayo Docker están disponibles como automatización. El 14 de agosto de 2026 la candidata pasó los cuatro controles sobre una reconstrucción completa; la activación de Meta, SMTP y Google sigue separada porque requiere credenciales externas propias.

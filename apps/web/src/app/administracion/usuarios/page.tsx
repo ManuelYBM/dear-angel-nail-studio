@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: 'Administración de usuarios' };
 export default function AdminUsersPage() {
   return (
     <PortalShell
+      access="admin"
       eyebrow="Panel de la administradora"
       title="Personas que hacen Dear Angel."
       intro="Crea perfiles, administra accesos y ayuda a recuperar cuentas sin conocer ni mostrar ninguna contraseña."

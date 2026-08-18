@@ -26,6 +26,8 @@ export class NotificationsBootstrapService
 
   async onApplicationBootstrap() {
     for (const [key, label, titleTemplate, bodyTemplate] of TEMPLATES) {
+      const whatsappTemplateName =
+        process.env[`WHATSAPP_TEMPLATE_${key.toUpperCase()}`]?.trim() || null;
       await this.prisma.notificationTemplate.upsert({
         where: { key },
         create: {
@@ -34,11 +36,18 @@ export class NotificationsBootstrapService
           titleTemplate,
           bodyTemplate,
           defaultChannel: 'WHATSAPP',
-          whatsappTemplateName: process.env[`WHATSAPP_TEMPLATE_${key.toUpperCase()}`] || null,
+          whatsappTemplateName,
         },
         update: {},
       });
+      if (whatsappTemplateName) {
+        await this.prisma.notificationTemplate.updateMany({
+          where: { key, whatsappTemplateName: null },
+          data: { whatsappTemplateName },
+        });
+      }
     }
+    if ((process.env.BACKGROUND_JOBS_MODE ?? 'worker') === 'worker') return;
     void this.runDeliveries();
     void this.runReminders();
     this.deliveryTimer = setInterval(() => void this.runDeliveries(), 30_000);

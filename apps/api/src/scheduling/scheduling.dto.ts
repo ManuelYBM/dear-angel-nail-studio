@@ -208,4 +208,15 @@ export class AppointmentListQueryDto {
   @IsOptional()
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   to?: string;
+
+  @IsOptional()
+  @IsUUID()
+  cursor?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(300)
+  limit?: number;
 }

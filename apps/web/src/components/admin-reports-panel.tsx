@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiFetch } from '@/lib/api';
 import type {
@@ -19,7 +20,7 @@ type ReportItem = AppointmentReportRow | DepositReportRow | ClientReportRow | De
 const tabs: Array<{ id: ReportTab; label: string }> = [
   { id: 'appointments', label: 'Citas' },
   { id: 'deposits', label: 'Anticipos' },
-  { id: 'clients', label: 'Clientela frecuente' },
+  { id: 'clients', label: 'Clientes frecuentes' },
   { id: 'designs', label: 'Diseños populares' },
 ];
 
@@ -66,10 +67,17 @@ function localDate(value: string) {
   }).format(new Date(value));
 }
 
+function dateParam(value: string | null, fallback: string) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : fallback;
+}
+
 export function AdminReportsPanel() {
+  const searchParams = useSearchParams();
+  const requestIdRef = useRef(0);
   const [tab, setTab] = useState<ReportTab>('appointments');
-  const [from, setFrom] = useState(() => dateKey(29));
-  const [to, setTo] = useState(() => dateKey());
+  const [loadedTab, setLoadedTab] = useState<ReportTab | null>(null);
+  const [from, setFrom] = useState(() => dateParam(searchParams.get('from'), dateKey(29)));
+  const [to, setTo] = useState(() => dateParam(searchParams.get('to'), dateKey()));
   const [status, setStatus] = useState('');
   const [technicianId, setTechnicianId] = useState('');
   const [technicians, setTechnicians] = useState<Array<TechnicianSummary & { status: string }>>([]);
@@ -93,6 +101,7 @@ export function AdminReportsPanel() {
   if (technicianId && tab === 'appointments') query.set('technicianId', technicianId);
 
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError('');
     const params = new URLSearchParams({ from, to });
@@ -105,14 +114,17 @@ export function AdminReportsPanel() {
         total: number;
         amountCents?: number;
       }>(`/admin/operations/reports/${tab}?${params}`);
+      if (requestId !== requestIdRef.current) return;
       setItems(result.items);
+      setLoadedTab(tab);
       setRange(result.range);
       setTotal(result.total);
       setAmountCents(result.amountCents ?? 0);
     } catch (reason) {
+      if (requestId !== requestIdRef.current) return;
       setError(reason instanceof Error ? reason.message : 'No pudimos generar el reporte.');
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }, [from, status, tab, technicianId, to]);
 
@@ -121,6 +133,15 @@ export function AdminReportsPanel() {
   }, [load]);
 
   function selectTab(next: ReportTab) {
+    if (next === tab) return;
+    requestIdRef.current += 1;
+    setItems([]);
+    setLoadedTab(null);
+    setRange(null);
+    setTotal(0);
+    setAmountCents(0);
+    setError('');
+    setLoading(true);
     setTab(next);
     setStatus('');
     setTechnicianId('');
@@ -220,11 +241,13 @@ export function AdminReportsPanel() {
           </p>
         </div>
       </div>
-      {loading && !items.length ? <div className={styles.loading}>Consultando datos…</div> : null}
-      {!loading && !items.length ? (
+      {loading && (loadedTab !== tab || !items.length) ? (
+        <div className={styles.loading}>Consultando datos…</div>
+      ) : null}
+      {!loading && loadedTab === tab && !items.length ? (
         <div className={styles.empty}>No hay registros con estos filtros.</div>
       ) : null}
-      {items.length ? <ReportTable items={items} tab={tab} /> : null}
+      {loadedTab === tab && items.length ? <ReportTable items={items} tab={tab} /> : null}
     </div>
   );
 }

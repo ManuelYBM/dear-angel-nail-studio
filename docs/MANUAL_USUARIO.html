@@ -221,8 +221,8 @@
         </p>
       </div>
       <div class="meta">
-        <div><span>Versión</span><strong>1.0</strong></div>
-        <div><span>Fecha</span><strong>12 de agosto de 2026</strong></div>
+        <div><span>Versión</span><strong>1.2</strong></div>
+        <div><span>Fecha</span><strong>14 de agosto de 2026</strong></div>
         <div><span>Idioma</span><strong>Español</strong></div>
       </div>
     </section>
@@ -237,16 +237,30 @@
         </li>
         <li>
           El registro solicita nombre, tratamiento, WhatsApp, contraseña y confirmación de
-          contraseña.
+          contraseña. El campo telefónico muestra siempre el país y su lada; México (+52) aparece
+          seleccionado al inicio y puede cambiarse antes de escribir el número. Pulsa
+          <strong>Continuar y verificar</strong>.
         </li>
         <li>
-          Escribe el código recibido por WhatsApp. En demostración el envío funciona en modo
-          simulado.
+          Escribe el código recibido por WhatsApp. La cuenta sólo queda activa después de confirmar
+          el código; antes de eso no se abre una sesión. Una demostración local puede mostrar un
+          código simulado sólo si la persona operadora habilitó expresamente ese modo de desarrollo.
         </li>
         <li>
-          Inicia sesión con teléfono y contraseña. El ojo permite mostrar u ocultar lo escrito.
+          Si sales antes de verificar, escribe el mismo teléfono y contraseña en
+          <strong>Iniciar sesión</strong>: volverás a la verificación mientras el borrador siga
+          vigente. Dura 24 horas; después deberás crear la cuenta de nuevo.
+        </li>
+        <li>
+          Cuando la cuenta ya esté activa, inicia sesión con teléfono y contraseña. El teléfono se
+          guarda en formato internacional; si el acceso también admite correo, el correo se conserva
+          sin aplicar una lada. El ojo permite mostrar u ocultar lo escrito.
         </li>
       </ol>
+      <div class="note">
+        <strong>Reenviar código:</strong> el botón usa el intento de verificación abierto; por
+        seguridad no puede solicitarse un código escribiendo únicamente un teléfono.
+      </div>
       <h3>Personal</h3>
       <p>
         Manicuristas y administradora pueden entrar con correo o teléfono. La recuperación del
@@ -256,11 +270,11 @@
         <strong>Sesión visible:</strong> arriba aparece un avatar con el nombre y rol actuales. Al
         tocarlo se abren Cuenta, Agenda, Datos, Notificaciones y Cerrar sesión.
       </div>
-      <h3>Navegación móvil</h3>
+      <h3>Navegación global</h3>
       <p>
-        La flecha de la esquina superior izquierda regresa al apartado anterior. Los accesos de
-        Diseños, Reservar y Políticas permanecen disponibles. Ninguna pantalla requiere el gesto de
-        retroceso del teléfono.
+        La barra superior permanece visible al desplazarte y aparece en todos los apartados. Incluye
+        Inicio, Experiencia, Diseños, Reservar, Políticas y la sesión; en móvil puedes deslizar sus
+        accesos horizontalmente. La flecha regresa al apartado anterior.
       </p>
       <h3>Editar datos y contraseña</h3>
       <p>
@@ -278,6 +292,11 @@
       <span class="eyebrow">02 · Reservaciones</span>
       <h2>Elegir diseño y apartar una cita</h2>
       <h3>Diseño del catálogo</h3>
+      <p>
+        Inicio muestra una selección breve de diseños destacados. Usa
+        <strong>Ver todos los diseños</strong> para abrir el catálogo completo con filtros y
+        favoritos.
+      </p>
       <ol class="steps">
         <li>Abre <strong>Diseños</strong>, usa búsqueda o filtros y selecciona un trabajo.</li>
         <li>Revisa precio estimado, técnica, largo y duración.</li>
@@ -294,6 +313,12 @@
         Una manicurista confirma o ajusta precio y tiempo. Solo entonces podrás reservar, y la cita
         quedará con quien tomó o recibió la cotización.
       </p>
+      <p>
+        Mientras la solicitud siga pendiente o en revisión puedes cancelarla desde
+        <strong>Cotizaciones</strong>. Una manicurista sólo ve solicitudes abiertas que puede tomar
+        o las que ya tiene asignadas; después de que alguien la toma, deja de mostrarse al resto del
+        equipo. Las imágenes adjuntas siguen la misma privacidad y no tienen un enlace público.
+      </p>
       <h3>“No tengo diseño”</h3>
       <p>
         Usa esta opción para describir libremente tu idea. La manicurista se pondrá de acuerdo
@@ -305,7 +330,10 @@
       </div>
       <h3>Anticipo</h3>
       <ol class="steps">
-        <li>El horario se conserva durante 10 minutos para subir el comprobante.</li>
+        <li>
+          El horario se conserva durante el plazo de apartado mostrado por la plataforma; el valor
+          inicial es de 10 minutos.
+        </li>
         <li>Lee y acepta las políticas antes de enviarlo.</li>
         <li>
           Al subir JPG, PNG, WebP o PDF, el estado cambia a <strong>Pago por verificar</strong>.
@@ -331,7 +359,8 @@
       <p>
         En <strong>Agenda</strong> se muestran fecha, manicurista, duración, diseño y estado.
         También llegan notificaciones internas y, al activar las credenciales reales, avisos por
-        WhatsApp.
+        WhatsApp. La primera página prioriza las citas recientes; pulsa
+        <strong>Cargar citas anteriores</strong> para consultar el historial restante.
       </p>
       <h3>Reprogramar o cancelar</h3>
       <table>
@@ -344,11 +373,14 @@
         <tbody>
           <tr>
             <td>Reprogramación de cliente</td>
-            <td>Una vez y con al menos 24 horas de anticipación.</td>
+            <td>
+              Respeta el límite de cambios y las horas mínimas de aviso configuradas por la
+              administradora. La agenda muestra la política vigente.
+            </td>
           </tr>
           <tr>
             <td>Cambio por personal</td>
-            <td>No consume la oportunidad de reprogramación de la clienta o cliente.</td>
+            <td>No consume el límite de reprogramaciones de la clienta o cliente.</td>
           </tr>
           <tr>
             <td>Cancelación</td>
@@ -438,14 +470,15 @@
         <div class="card">
           <strong>Agenda</strong>
           <p>
-            Horario global, políticas de anticipación, duración, intervalo y gestión de cualquier
-            cita.
+            Horario global, políticas de anticipación, duración, intervalo, aviso y límite de
+            reprogramaciones, además de la gestión de cualquier cita.
           </p>
         </div>
         <div class="card">
           <strong>Catálogo</strong>
           <p>
-            Diseños, imágenes, precios, tiempos, publicación, técnicas y opciones de la calculadora.
+            Diseños, galería de hasta cinco imágenes, portada, precios, tiempos, publicación,
+            técnicas y opciones de la calculadora.
           </p>
         </div>
         <div class="card">
@@ -466,6 +499,12 @@
           <p>Plantillas, canal, nombres aprobados por Meta, estado de entregas y reintentos.</p>
         </div>
       </div>
+      <h3>Galería del catálogo</h3>
+      <p>
+        Al editar un diseño puedes conservar hasta cinco imágenes. La primera es la portada pública;
+        usa <strong>Usar como portada</strong> sobre otra imagen para cambiarla sin borrar el resto.
+        Si eliminas la portada, la siguiente imagen pasa a ocupar ese lugar.
+      </p>
       <h3>Dashboard</h3>
       <p>
         Elige Desde y Hasta para consultar citas, atenciones, ausencias, cancelaciones, anticipos
@@ -508,8 +547,8 @@
       <h3>Identidad de Dear Angel</h3>
       <p>
         En Configuración cambia nombre, frase, ciudad, dirección, teléfono, WhatsApp, redes, mapa,
-        logo e icono. Las imágenes aceptadas son PNG, JPG o WebP de hasta 5 MB. Para el icono se
-        recomienda una imagen cuadrada de 512 × 512 px.
+        logo e icono. Las imágenes aceptadas son PNG, JPG o WebP de hasta 5 MB. El icono debe ser
+        cuadrado y medir exactamente 512 × 512 px; el panel rechaza otras dimensiones.
       </p>
       <div class="footer">
         <span>Dear Angel Nail Studio</span><span>Manual de usuario · 7</span>
@@ -539,8 +578,8 @@
       <ul>
         <li>Agenda con anticipo configurable.</li>
         <li>Anticipo no reembolsable en caso de no asistir.</li>
-        <li>Una reprogramación con el mismo anticipo.</li>
-        <li>Cambios con un día de anticipación.</li>
+        <li>Límite de reprogramaciones definido por la política vigente.</li>
+        <li>Horas mínimas de aviso definidas por la política vigente.</li>
         <li>Sin acompañantes; menores de 16 con una persona adulta.</li>
         <li>10 minutos de tolerancia.</li>
       </ul>

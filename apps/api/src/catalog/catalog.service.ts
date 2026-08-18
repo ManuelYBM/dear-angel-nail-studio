@@ -24,6 +24,9 @@ import type {
   CreateQuoteDto,
   ReviewQuoteDto,
 } from './catalog.dto';
+import { canTechnicianAccessQuote } from './quote-access';
+
+type CatalogListQuery = CatalogQueryDto & { limit?: number };
 
 @Injectable()
 export class CatalogService {
@@ -34,7 +37,7 @@ export class CatalogService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  async listDesigns(user: AuthenticatedUser | undefined, query: CatalogQueryDto, admin = false) {
+  async listDesigns(user: AuthenticatedUser | undefined, query: CatalogListQuery, admin = false) {
     const designs = await this.prisma.catalogDesign.findMany({
       where: {
         ...(admin ? {} : { published: true }),
@@ -55,6 +58,7 @@ export class CatalogService {
         ...(user ? { favorites: { where: { userId: user.id } } } : {}),
       },
       orderBy: [{ featured: 'desc' }, { sortOrder: 'asc' }, { createdAt: 'desc' }],
+      ...(query.limit ? { take: query.limit } : {}),
     });
     return {
       items: designs.map((design) => ({
@@ -168,6 +172,24 @@ export class CatalogService {
     await this.storage.removeObject(image.objectKey).catch(() => undefined);
     await this.record(actor, request, 'CATALOG_IMAGE_DELETED', 'CatalogDesignImage', imageId);
     return { deleted: true };
+  }
+
+  async setDesignCover(actor: AuthenticatedUser, imageId: string, request: Request) {
+    const image = await this.prisma.catalogDesignImage.findUnique({ where: { id: imageId } });
+    if (!image) throw new NotFoundException('No encontramos la imagen.');
+    const design = await this.prisma.$transaction(async (tx) => {
+      await tx.catalogDesignImage.updateMany({
+        where: { designId: image.designId },
+        data: { sortOrder: { increment: 1 } },
+      });
+      await tx.catalogDesignImage.update({ where: { id: imageId }, data: { sortOrder: 0 } });
+      return tx.catalogDesign.findUniqueOrThrow({
+        where: { id: image.designId },
+        include: { images: { orderBy: { sortOrder: 'asc' } } },
+      });
+    });
+    await this.record(actor, request, 'CATALOG_COVER_UPDATED', 'CatalogDesignImage', imageId);
+    return { design };
   }
 
   async catalogImage(imageId: string): Promise<StoredAsset> {
@@ -315,20 +337,26 @@ export class CatalogService {
       ? [dto.preferredTechnicianId]
       : (
           await this.prisma.user.findMany({
-            where: { role: 'NAIL_TECHNICIAN', status: 'ACTIVE' },
+            where: {
+              role: 'NAIL_TECHNICIAN',
+              status: 'ACTIVE',
+              technicianSchedule: { acceptingBookings: true },
+            },
             select: { id: true },
           })
         ).map(({ id }) => id);
-    await this.notifications.notifyMany(reviewers, {
-      kind: 'QUOTE',
-      title: 'Nueva cotización por revisar',
-      body: `${user.fullName} envió una idea personalizada.`,
-      actionUrl: '/cotizaciones',
-      templateKey: 'quote_update',
-      dedupePrefix: `quote-created:${quote.id}`,
-      external: true,
-    });
-    return { quote: this.safeQuote(quote) };
+    await this.notifications
+      .notifyMany(reviewers, {
+        kind: 'QUOTE',
+        title: 'Nueva cotización por revisar',
+        body: `${user.fullName} envió una idea personalizada.`,
+        actionUrl: '/cotizaciones',
+        templateKey: 'quote_update',
+        dedupePrefix: `quote-created:${quote.id}`,
+        external: true,
+      })
+      .catch(() => null);
+    return { quote: this.safeQuote(quote, user) };
   }
 
   async uploadQuoteImage(
@@ -347,20 +375,42 @@ export class CatalogService {
     if (user.role === 'NAIL_TECHNICIAN' && quote.assignedTechnicianId !== user.id)
       throw new ForbiddenException();
     if (quote._count.images >= 5) throw new BadRequestException('Puedes subir hasta 5 imágenes.');
-    if (user.role === 'CLIENT' && !['PENDING_REVIEW', 'IN_REVIEW'].includes(quote.status))
+    if (!['PENDING_REVIEW', 'IN_REVIEW'].includes(quote.status))
       throw new ConflictException('Esta cotización ya fue revisada.');
     const objectKey = `quotes/${quoteId}/${randomUUID()}-${this.safeFilename(file.originalname)}`;
     await this.storage.putObject(objectKey, file.buffer, file.mimetype);
     try {
-      const image = await this.prisma.quoteImage.create({
-        data: {
-          quoteId,
-          objectKey,
-          mimeType: file.mimetype,
-          filename: file.originalname,
-          sizeBytes: file.size,
-          sortOrder: quote._count.images,
-        },
+      const image = await this.prisma.$transaction(async (tx) => {
+        const locked = await tx.customQuote.updateMany({
+          where: {
+            id: quoteId,
+            status: { in: ['PENDING_REVIEW', 'IN_REVIEW'] },
+            updatedAt: quote.updatedAt,
+            ...(user.role === 'CLIENT'
+              ? { clientId: user.id }
+              : user.role === 'NAIL_TECHNICIAN'
+                ? { assignedTechnicianId: user.id }
+                : {}),
+          },
+          data: {
+            updatedAt: new Date(Math.max(Date.now(), quote.updatedAt.getTime() + 1)),
+          },
+        });
+        if (locked.count !== 1) {
+          throw new ConflictException('La cotización cambió mientras se cargaba la imagen.');
+        }
+        const imageCount = await tx.quoteImage.count({ where: { quoteId } });
+        if (imageCount >= 5) throw new BadRequestException('Puedes subir hasta 5 imágenes.');
+        return tx.quoteImage.create({
+          data: {
+            quoteId,
+            objectKey,
+            mimeType: file.mimetype,
+            filename: file.originalname,
+            sizeBytes: file.size,
+            sortOrder: imageCount,
+          },
+        });
       });
       await this.record(user, request, 'QUOTE_IMAGE_UPLOADED', 'QuoteImage', image.id);
       return { image };
@@ -376,14 +426,7 @@ export class CatalogService {
       include: { quote: true },
     });
     if (!image) throw new NotFoundException('No encontramos la imagen.');
-    if (user.role === 'CLIENT' && image.quote.clientId !== user.id) throw new ForbiddenException();
-    if (
-      user.role === 'NAIL_TECHNICIAN' &&
-      image.quote.assignedTechnicianId !== user.id &&
-      image.quote.preferredTechnicianId !== user.id &&
-      image.quote.preferredTechnicianId !== null
-    )
-      throw new ForbiddenException();
+    this.assertQuoteAccess(user, image.quote);
     return {
       stream: await this.storage.getObject(image.objectKey),
       mimeType: image.mimeType,
@@ -399,8 +442,16 @@ export class CatalogService {
           ? {
               OR: [
                 { assignedTechnicianId: user.id },
-                { assignedTechnicianId: null, preferredTechnicianId: user.id },
-                { assignedTechnicianId: null, preferredTechnicianId: null },
+                {
+                  status: 'PENDING_REVIEW',
+                  assignedTechnicianId: null,
+                  preferredTechnicianId: user.id,
+                },
+                {
+                  status: 'PENDING_REVIEW',
+                  assignedTechnicianId: null,
+                  preferredTechnicianId: null,
+                },
               ],
             }
           : {};
@@ -410,7 +461,7 @@ export class CatalogService {
       orderBy: { createdAt: 'desc' },
       take: 200,
     });
-    return { items: items.map((quote) => this.safeQuote(quote)) };
+    return { items: items.map((quote) => this.safeQuote(quote, user)) };
   }
 
   getQuote(user: AuthenticatedUser, id: string) {
@@ -418,6 +469,7 @@ export class CatalogService {
   }
 
   async claimQuote(user: AuthenticatedUser, id: string, request: Request) {
+    await this.requireTechnician(user.id);
     const available = await this.prisma.customQuote.findFirst({
       where: {
         id,
@@ -432,7 +484,13 @@ export class CatalogService {
         message: 'Esta cotización ya fue tomada o no está dirigida a ti.',
       });
     const result = await this.prisma.customQuote.updateMany({
-      where: { id, status: 'PENDING_REVIEW', assignedTechnicianId: null },
+      where: {
+        id,
+        status: 'PENDING_REVIEW',
+        assignedTechnicianId: null,
+        updatedAt: available.updatedAt,
+        OR: [{ preferredTechnicianId: null }, { preferredTechnicianId: user.id }],
+      },
       data: { assignedTechnicianId: user.id, status: 'IN_REVIEW', claimedAt: new Date() },
     });
     if (result.count !== 1)
@@ -458,9 +516,28 @@ export class CatalogService {
 
   async assignQuote(user: AuthenticatedUser, id: string, dto: AssignQuoteDto, request: Request) {
     await this.requireTechnician(dto.technicianId);
-    const quote = await this.prisma.customQuote.update({
+    const current = await this.prisma.customQuote.findUnique({
       where: { id },
+      include: {
+        appointments: { where: { status: { in: ['HELD', 'PENDING_PAYMENT', 'CONFIRMED'] } } },
+      },
+    });
+    if (!current) throw new NotFoundException('No encontramos la cotización.');
+    if (!['PENDING_REVIEW', 'IN_REVIEW'].includes(current.status) || current.appointments.length) {
+      throw new ConflictException('La cotización ya no puede reasignarse.');
+    }
+    const changed = await this.prisma.customQuote.updateMany({
+      where: {
+        id,
+        status: { in: ['PENDING_REVIEW', 'IN_REVIEW'] },
+        updatedAt: current.updatedAt,
+        assignedTechnicianId: current.assignedTechnicianId,
+      },
       data: { assignedTechnicianId: dto.technicianId, status: 'IN_REVIEW', claimedAt: new Date() },
+    });
+    if (changed.count !== 1) throw new ConflictException('La cotización acaba de cambiar.');
+    const quote = await this.prisma.customQuote.findUniqueOrThrow({
+      where: { id },
       include: this.quoteInclude,
     });
     await this.record(user, request, 'CUSTOM_QUOTE_ASSIGNED', 'CustomQuote', id);
@@ -476,7 +553,7 @@ export class CatalogService {
         external: true,
       })
       .catch(() => null);
-    return { quote: this.safeQuote(quote) };
+    return { quote: this.safeQuote(quote, user) };
   }
 
   async reviewQuote(user: AuthenticatedUser, id: string, dto: ReviewQuoteDto, request: Request) {
@@ -484,6 +561,8 @@ export class CatalogService {
       throw new BadRequestException('La revisión debe aprobar o rechazar la solicitud.');
     const quote = await this.prisma.customQuote.findUnique({ where: { id } });
     if (!quote) throw new NotFoundException('No encontramos la cotización.');
+    if (quote.status !== 'IN_REVIEW')
+      throw new ConflictException('La cotización no está pendiente de revisión.');
     if (user.role === 'NAIL_TECHNICIAN' && quote.assignedTechnicianId !== user.id)
       throw new ForbiddenException('Esta cotización pertenece a otra manicurista.');
     if (user.role === 'ADMIN' && dto.status === 'APPROVED' && !quote.assignedTechnicianId)
@@ -493,8 +572,16 @@ export class CatalogService {
       (dto.confirmedPriceCents === undefined || dto.confirmedDurationMinutes === undefined)
     )
       throw new BadRequestException('Confirma precio y duración.');
-    const reviewed = await this.prisma.customQuote.update({
-      where: { id },
+    if (dto.status === 'APPROVED' && quote.assignedTechnicianId) {
+      await this.requireTechnician(quote.assignedTechnicianId);
+    }
+    const changed = await this.prisma.customQuote.updateMany({
+      where: {
+        id,
+        status: 'IN_REVIEW',
+        updatedAt: quote.updatedAt,
+        assignedTechnicianId: quote.assignedTechnicianId,
+      },
       data: {
         status: dto.status,
         assignedTechnicianId:
@@ -505,6 +592,10 @@ export class CatalogService {
         reviewerComments: dto.reviewerComments?.trim() || null,
         reviewedAt: new Date(),
       },
+    });
+    if (changed.count !== 1) throw new ConflictException('La cotización acaba de cambiar.');
+    const reviewed = await this.prisma.customQuote.findUniqueOrThrow({
+      where: { id },
       include: this.quoteInclude,
     });
     await this.record(user, request, `CUSTOM_QUOTE_${dto.status}`, 'CustomQuote', id);
@@ -524,7 +615,53 @@ export class CatalogService {
         external: true,
       })
       .catch(() => null);
-    return { quote: this.safeQuote(reviewed) };
+    return { quote: this.safeQuote(reviewed, user) };
+  }
+
+  async cancelQuote(user: AuthenticatedUser, id: string, request: Request) {
+    const quote = await this.prisma.customQuote.findUnique({
+      where: { id },
+      include: {
+        appointments: { where: { status: { in: ['HELD', 'PENDING_PAYMENT', 'CONFIRMED'] } } },
+      },
+    });
+    if (!quote) throw new NotFoundException('No encontramos la cotización.');
+    if (quote.clientId !== user.id) throw new ForbiddenException();
+    if (!['PENDING_REVIEW', 'IN_REVIEW'].includes(quote.status) || quote.appointments.length) {
+      throw new ConflictException('La cotización ya no puede cancelarse.');
+    }
+    const changed = await this.prisma.customQuote.updateMany({
+      where: {
+        id,
+        clientId: user.id,
+        status: { in: ['PENDING_REVIEW', 'IN_REVIEW'] },
+        updatedAt: quote.updatedAt,
+        assignedTechnicianId: quote.assignedTechnicianId,
+        preferredTechnicianId: quote.preferredTechnicianId,
+      },
+      data: { status: 'CANCELLED' },
+    });
+    if (changed.count !== 1) throw new ConflictException('La cotización acaba de cambiar.');
+    await this.record(user, request, 'CUSTOM_QUOTE_CANCELLED', 'CustomQuote', id);
+    const reviewers = quote.assignedTechnicianId
+      ? [quote.assignedTechnicianId]
+      : quote.preferredTechnicianId
+        ? [quote.preferredTechnicianId]
+        : [];
+    if (reviewers.length) {
+      await this.notifications
+        .notifyMany(reviewers, {
+          kind: 'QUOTE',
+          title: 'Cotización cancelada',
+          body: `${user.fullName} canceló su solicitud de cotización.`,
+          actionUrl: '/cotizaciones',
+          templateKey: 'quote_update',
+          dedupePrefix: `quote-cancelled:${id}`,
+          external: false,
+        })
+        .catch(() => null);
+    }
+    return this.getQuoteForUser(user, id);
   }
 
   private async getQuoteForUser(user: AuthenticatedUser, id: string) {
@@ -533,8 +670,25 @@ export class CatalogService {
       include: this.quoteInclude,
     });
     if (!quote) throw new NotFoundException('No encontramos la cotización.');
-    if (user.role === 'CLIENT' && quote.clientId !== user.id) throw new ForbiddenException();
-    return { quote: this.safeQuote(quote) };
+    this.assertQuoteAccess(user, quote);
+    return { quote: this.safeQuote(quote, user) };
+  }
+
+  private assertQuoteAccess(
+    user: AuthenticatedUser,
+    quote: {
+      clientId: string;
+      assignedTechnicianId: string | null;
+      preferredTechnicianId: string | null;
+      status: string;
+    },
+  ) {
+    if (user.role === 'ADMIN') return;
+    if (user.role === 'CLIENT') {
+      if (quote.clientId !== user.id) throw new ForbiddenException();
+      return;
+    }
+    if (!canTechnicianAccessQuote(user.id, quote)) throw new ForbiddenException();
   }
 
   private optionData(dto: CalculatorOptionDto): Prisma.CalculatorOptionUncheckedCreateInput {
@@ -556,7 +710,14 @@ export class CatalogService {
 
   private requireTechnician(id: string) {
     return this.prisma.user
-      .findFirstOrThrow({ where: { id, role: 'NAIL_TECHNICIAN', status: 'ACTIVE' } })
+      .findFirstOrThrow({
+        where: {
+          id,
+          role: 'NAIL_TECHNICIAN',
+          status: 'ACTIVE',
+          technicianSchedule: { acceptingBookings: true },
+        },
+      })
       .catch(() => {
         throw new BadRequestException('Selecciona una manicurista activa.');
       });
@@ -590,7 +751,18 @@ export class CatalogService {
     });
   }
 
-  private safeQuote(quote: Record<string, unknown>) {
+  private safeQuote(quote: Record<string, unknown>, user: AuthenticatedUser) {
+    if (
+      user.role === 'NAIL_TECHNICIAN' &&
+      quote.assignedTechnicianId !== user.id &&
+      quote.client &&
+      typeof quote.client === 'object'
+    ) {
+      return {
+        ...quote,
+        client: { ...quote.client, phone: null, email: null },
+      };
+    }
     return quote;
   }
 

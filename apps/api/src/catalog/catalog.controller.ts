@@ -26,6 +26,7 @@ import {
   CatalogDesignDto,
   CatalogQueryDto,
   CreateQuoteDto,
+  PublicCatalogQueryDto,
   ReviewQuoteDto,
 } from './catalog.dto';
 import { CatalogService } from './catalog.service';
@@ -39,7 +40,7 @@ export class CatalogController {
 
   @Public()
   @Get('designs')
-  designs(@Query() query: CatalogQueryDto) {
+  designs(@Query() query: PublicCatalogQueryDto) {
     return this.catalog.listDesigns(undefined, query);
   }
 
@@ -130,6 +131,16 @@ export class CatalogController {
     return this.catalog.reviewQuote(user, id, dto, request);
   }
 
+  @Roles(UserRole.CLIENT)
+  @Patch('quotes/:id/cancel')
+  cancelQuote(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Req() request: Request,
+  ) {
+    return this.catalog.cancelQuote(user, id, request);
+  }
+
   @Post('quotes/:id/images')
   @UseInterceptors(imageUpload)
   uploadQuoteImage(
@@ -217,6 +228,15 @@ export class AdminCatalogController {
     @Req() request: Request,
   ) {
     return this.catalog.deleteDesignImage(user, imageId, request);
+  }
+
+  @Patch('images/:imageId/cover')
+  setDesignCover(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('imageId', ParseUUIDPipe) imageId: string,
+    @Req() request: Request,
+  ) {
+    return this.catalog.setDesignCover(user, imageId, request);
   }
 
   @Get('calculator')

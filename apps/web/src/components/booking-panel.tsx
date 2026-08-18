@@ -50,6 +50,7 @@ export function BookingPanel() {
   const [held, setHeld] = useState<Appointment | null>(null);
   const [selectedDesign, setSelectedDesign] = useState<CatalogDesign | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<CustomQuote | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -83,16 +84,41 @@ export function BookingPanel() {
   ]);
 
   useEffect(() => {
-    void Promise.all([
-      apiFetch<{ items: TechnicianSummary[] }>('/scheduling/technicians'),
-      apiFetch<{ user: CurrentUser }>('/auth/me').catch(() => null),
-    ])
-      .then(([team, session]) => {
-        setTechnicians(team.items);
-        setUser(session?.user ?? null);
-      })
+    void apiFetch<{ items: TechnicianSummary[] }>('/scheduling/technicians')
+      .then((team) => setTechnicians(team.items))
       .catch(() => setError('No pudimos cargar el equipo de Dear Angel.'));
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadSession = () => {
+      setSessionReady(false);
+      void apiFetch<{ user: CurrentUser }>('/auth/me')
+        .then(({ user: currentUser }) => {
+          if (!active) return;
+          setUser(currentUser);
+          setSessionReady(true);
+          if (currentUser.mustChangePassword) {
+            router.replace('/mi-cuenta');
+          } else if (currentUser.role !== 'CLIENT') {
+            router.replace('/agenda');
+          }
+        })
+        .catch(() => {
+          if (!active) return;
+          setUser(null);
+          setSessionReady(true);
+        });
+    };
+
+    loadSession();
+    window.addEventListener('dearangel:session-changed', loadSession);
+    return () => {
+      active = false;
+      window.removeEventListener('dearangel:session-changed', loadSession);
+    };
+  }, [router]);
 
   useEffect(() => {
     if (designId) {
@@ -117,13 +143,18 @@ export function BookingPanel() {
   }, [designId, quoteId]);
 
   useEffect(() => {
+    if (!sessionReady || user?.mustChangePassword || (user && user.role !== 'CLIENT')) return;
     void loadAvailability();
-  }, [loadAvailability]);
+  }, [loadAvailability, sessionReady, user]);
 
   async function reserve() {
     if (!selected) return;
     if (!user) {
       router.push('/acceso');
+      return;
+    }
+    if (user.mustChangePassword) {
+      router.push('/mi-cuenta');
       return;
     }
     if (user.role !== 'CLIENT') {
@@ -160,6 +191,17 @@ export function BookingPanel() {
   }
 
   const slots = availability?.days[0]?.slots ?? [];
+  const redirectingToWorkspace = Boolean(
+    user?.mustChangePassword || (user && user.role !== 'CLIENT'),
+  );
+
+  if (!sessionReady || redirectingToWorkspace) {
+    return (
+      <div className={styles.loading} role="status">
+        {sessionReady ? 'Abriendo tu espacio de trabajo…' : 'Comprobando tu acceso…'}
+      </div>
+    );
+  }
 
   return (
     <div className={styles.bookingGrid}>
@@ -174,7 +216,7 @@ export function BookingPanel() {
           </div>
         </div>
         {selectedDesign || selectedQuote ? (
-          <div className={styles.notice}>
+          <div className={`${styles.notice} ${styles.selectionNotice}`}>
             <strong>{selectedDesign?.title ?? 'Diseño personalizado aprobado'}</strong>
             <span>
               {selectedDesign
@@ -212,24 +254,12 @@ export function BookingPanel() {
           <label htmlFor="bookingDate">Fecha</label>
           <input
             id="bookingDate"
-            max={dateAfter(14)}
+            max={dateAfter(availability?.policy.maximumAdvanceDays ?? 14)}
             min={dateAfter(0)}
             onChange={(event) => setDate(event.target.value)}
             type="date"
             value={date}
           />
-        </div>
-        <div className={styles.policyStrip}>
-          <span>
-            {availability?.policy.durationMinutes ??
-              selectedQuote?.confirmedDurationMinutes ??
-              selectedDesign?.durationMinutes ??
-              60}{' '}
-            min
-          </span>
-          <span>Desde 4 h antes</span>
-          <span>Hasta 2 semanas</span>
-          <Link href="/politicas">Consultar políticas</Link>
         </div>
       </section>
 

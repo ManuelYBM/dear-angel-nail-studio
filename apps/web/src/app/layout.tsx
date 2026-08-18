@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
 import { PwaBridge } from '@/components/pwa-bridge';
+import { SiteHeader } from '@/components/site-header';
 import { StudioProvider } from '@/components/studio-brand';
 
 import './globals.css';
@@ -19,8 +20,8 @@ export const metadata: Metadata = {
     title: 'Dear Angel',
   },
   icons: {
-    icon: '/brand/icon-placeholder.png',
-    apple: '/brand/icon-placeholder.png',
+    icon: '/app-icon',
+    apple: '/app-icon',
   },
 };
 
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="es">
       <body>
         <StudioProvider>
+          <SiteHeader />
           {children}
           <PwaBridge />
         </StudioProvider>

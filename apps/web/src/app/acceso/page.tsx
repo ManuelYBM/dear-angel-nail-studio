@@ -9,7 +9,6 @@ export default function AccessPage() {
   return (
     <PortalShell
       eyebrow="Tu espacio personal"
-      hideAnonymousSession
       title="Qué bonito tenerte de vuelta."
       intro="Entra para consultar tus citas, recompensas y solicitudes. El equipo puede usar correo o teléfono."
       aside={

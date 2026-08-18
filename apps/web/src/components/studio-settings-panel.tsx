@@ -5,7 +5,28 @@ import type { ChangeEvent, FormEvent } from 'react';
 
 import { apiFetch } from '@/lib/api';
 import type { StudioSettings } from '@/lib/api';
+import { PhoneField } from './phone-field';
 import styles from './admin-operations.module.css';
+
+async function imageDimensions(file: File) {
+  if ('createImageBitmap' in window) {
+    const bitmap = await createImageBitmap(file);
+    const dimensions = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
+    return dimensions;
+  }
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    return await new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      image.onerror = () => reject(new Error('Invalid image'));
+      image.src = objectUrl;
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
 
 export function StudioSettingsPanel() {
   const [settings, setSettings] = useState<StudioSettings | null>(null);
@@ -67,6 +88,22 @@ export function StudioSettingsPanel() {
   async function upload(kind: 'logo' | 'icon', event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (kind === 'icon') {
+      try {
+        const { width, height } = await imageDimensions(file);
+        if (width !== 512 || height !== 512) {
+          setError(
+            `El icono debe medir exactamente 512 × 512 px; este archivo mide ${width} × ${height} px.`,
+          );
+          event.target.value = '';
+          return;
+        }
+      } catch {
+        setError('No pudimos leer las dimensiones del icono. Elige otra imagen.');
+        event.target.value = '';
+        return;
+      }
+    }
     setBusy(kind);
     setError('');
     setNotice('');
@@ -141,15 +178,13 @@ export function StudioSettingsPanel() {
               Estado
               <input defaultValue={settings.state} maxLength={80} name="state" required />
             </label>
-            <label className={styles.field}>
-              Teléfono público
-              <input
-                defaultValue={settings.publicPhone ?? ''}
-                inputMode="tel"
-                maxLength={40}
-                name="publicPhone"
-              />
-            </label>
+            <PhoneField
+              defaultValue={settings.publicPhone}
+              id="publicPhone"
+              label="Teléfono público"
+              maxLength={40}
+              name="publicPhone"
+            />
           </div>
           <label className={styles.field}>
             Dirección
@@ -160,16 +195,13 @@ export function StudioSettingsPanel() {
               rows={2}
             />
           </label>
-          <label className={styles.field}>
-            WhatsApp
-            <input
-              defaultValue={settings.whatsapp ?? ''}
-              inputMode="tel"
-              maxLength={40}
-              name="whatsapp"
-              placeholder="Ej. +52 999 000 0000"
-            />
-          </label>
+          <PhoneField
+            defaultValue={settings.whatsapp}
+            id="studioWhatsapp"
+            label="WhatsApp"
+            maxLength={40}
+            name="whatsapp"
+          />
           <div className={styles.fieldGrid}>
             <label className={styles.field}>
               Instagram
@@ -250,7 +282,8 @@ export function StudioSettingsPanel() {
           <section className={styles.assetCard}>
             <h2>Icono de la app</h2>
             <p>
-              Usa una imagen cuadrada de al menos 512 × 512 px para que se vea bien al instalarla.
+              Usa una imagen cuadrada de exactamente 512 × 512 px para que coincida con el icono
+              instalable.
             </p>
             <div className={styles.assetPreview}>
               {settings.hasIcon ? (

@@ -47,7 +47,8 @@ export class SessionService {
       !session ||
       session.revokedAt ||
       session.expiresAt.getTime() <= Date.now() ||
-      session.user.status !== 'ACTIVE'
+      session.user.status !== 'ACTIVE' ||
+      session.user.archivedAt
     ) {
       throw new UnauthorizedException({
         code: 'SESSION_INVALID',

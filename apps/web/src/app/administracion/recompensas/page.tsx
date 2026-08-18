@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: 'Administrar recompensas' };
 export default function AdminRewardsPage() {
   return (
     <PortalShell
+      access="admin"
       eyebrow="Fidelidad Dear Angel"
       title="Diseña beneficios que sí se sienten personales."
       intro="Configura hitos, promociones y correcciones manteniendo un historial claro de cada movimiento."

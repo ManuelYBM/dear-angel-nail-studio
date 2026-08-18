@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { apiFetch } from '@/lib/api';
@@ -21,9 +22,14 @@ function dateKey(daysAgo = 0) {
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
 
+function dateParam(value: string | null, fallback: string) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : fallback;
+}
+
 export function AdminDashboardPanel() {
-  const [from, setFrom] = useState(() => dateKey(29));
-  const [to, setTo] = useState(() => dateKey());
+  const searchParams = useSearchParams();
+  const [from, setFrom] = useState(() => dateParam(searchParams.get('from'), dateKey(29)));
+  const [to, setTo] = useState(() => dateParam(searchParams.get('to'), dateKey()));
   const [report, setReport] = useState<DashboardReport | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -143,7 +149,7 @@ export function AdminDashboardPanel() {
             <section className={styles.panel}>
               <div className={styles.panelHeader}>
                 <div>
-                  <h2>Clientela frecuente</h2>
+                  <h2>Clientes frecuentes</h2>
                   <p>Actividad dentro del periodo.</p>
                 </div>
               </div>

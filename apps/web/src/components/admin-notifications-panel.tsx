@@ -96,14 +96,17 @@ export function AdminNotificationsPanel() {
         {report.failures.length ? (
           <details className={styles.securityDetails}>
             <summary>
-              <span>Reintentos</span>
+              <span>Errores de entrega</span>
               <strong>{report.failures.length} entregas con error</strong>
             </summary>
             <div className={styles.securityContent}>
               {report.failures.map((failure) => (
                 <p className={styles.fieldHint} key={failure.id}>
                   <strong>{failure.notification.user.fullName}</strong> ·{' '}
-                  {failure.notification.title} · intento {failure.attempts}/5
+                  {failure.notification.title} ·{' '}
+                  {failure.attempts >= 5
+                    ? 'se agotaron los 5 intentos'
+                    : `reintento ${failure.attempts + 1}/5 programado`}
                   <br />
                   {failure.lastError}
                 </p>
@@ -185,8 +188,8 @@ function labelStatus(status: string) {
       {
         PENDING: 'Pendientes',
         PROCESSING: 'En proceso',
-        SENT: 'Enviados',
-        FAILED: 'Reintentando',
+        SENT: 'Aceptados por proveedor',
+        FAILED: 'Con error',
         SKIPPED: 'Omitidos',
       } as Record<string, string>
     )[status] ?? status

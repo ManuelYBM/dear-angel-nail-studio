@@ -4,10 +4,14 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js/max';
 @Injectable()
 export class PhoneService {
   normalize(input: string): string {
-    const phone = parsePhoneNumberFromString(input.trim(), {
-      defaultCountry: 'MX',
-      extract: false,
-    });
+    const value = input.trim();
+    if (!value.startsWith('+')) {
+      throw new BadRequestException({
+        code: 'PHONE_COUNTRY_CODE_REQUIRED',
+        message: 'Selecciona la lada internacional; por ejemplo, +52 para México.',
+      });
+    }
+    const phone = parsePhoneNumberFromString(value, { extract: false });
     if (!phone?.isValid()) {
       throw new BadRequestException({
         code: 'INVALID_PHONE',

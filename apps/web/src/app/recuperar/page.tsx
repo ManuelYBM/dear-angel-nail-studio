@@ -9,7 +9,6 @@ export default function RecoveryPage() {
   return (
     <PortalShell
       eyebrow="Recuperación segura"
-      hideAnonymousSession
       title="Volvamos a abrir tu espacio."
       intro="Las clientas reciben el código por WhatsApp. La administradora y las manicuristas lo reciben por correo."
       aside={

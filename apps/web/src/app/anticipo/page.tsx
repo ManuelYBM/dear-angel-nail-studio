@@ -9,6 +9,7 @@ export const metadata: Metadata = { title: 'Anticipo de reservación' };
 export default function PaymentPage() {
   return (
     <PortalShell
+      access="client"
       eyebrow="Reserva protegida"
       title="Confirma tu momento."
       intro="Realiza la transferencia con tu referencia y envía el comprobante para conservar el horario."

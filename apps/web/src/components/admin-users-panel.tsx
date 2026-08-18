@@ -8,6 +8,7 @@ import { apiFetch } from '@/lib/api';
 import type { ChallengeResult, CurrentUser, UserRole } from '@/lib/api';
 import { clientLabel, roleLabel, statusLabel } from '@/lib/person';
 import { PasswordField } from './password-field';
+import { PhoneField } from './phone-field';
 import styles from './portal.module.css';
 
 interface AdminUser extends CurrentUser {
@@ -162,7 +163,8 @@ export function AdminUsersPanel() {
       ) : null}
       {recovery?.debugCode ? (
         <div className={styles.mockCode}>
-          Código de prueba para {recovery.destination}.<strong>{recovery.debugCode}</strong>
+          Código de depuración devuelto por el entorno local para {recovery.destination}.
+          <strong>{recovery.debugCode}</strong>
         </div>
       ) : null}
 
@@ -184,10 +186,12 @@ export function AdminUsersPanel() {
                   <option value="PREFER_NOT_TO_SAY">Prefiero no responder</option>
                 </select>
               </div>
-              <div className={styles.field}>
-                <label htmlFor="editPhone">WhatsApp</label>
-                <input defaultValue={editing.phone ?? ''} id="editPhone" name="phone" />
-              </div>
+              <PhoneField
+                defaultValue={editing.phone}
+                id="editPhone"
+                label="WhatsApp"
+                name="phone"
+              />
               <div className={styles.field}>
                 <label htmlFor="editEmail">Correo</label>
                 <input
@@ -236,10 +240,12 @@ export function AdminUsersPanel() {
                   <option value="PREFER_NOT_TO_SAY">Prefiero no responder</option>
                 </select>
               </div>
-              <div className={styles.field}>
-                <label htmlFor="phone">WhatsApp {role === 'CLIENT' ? '(obligatorio)' : ''}</label>
-                <input id="phone" name="phone" required={role === 'CLIENT'} />
-              </div>
+              <PhoneField
+                id="phone"
+                label={`WhatsApp ${role === 'CLIENT' ? '(obligatorio)' : '(opcional)'}`}
+                name="phone"
+                required={role === 'CLIENT'}
+              />
               <div className={styles.field}>
                 <label htmlFor="email">
                   Correo {role === 'NAIL_TECHNICIAN' ? '(obligatorio)' : ''}

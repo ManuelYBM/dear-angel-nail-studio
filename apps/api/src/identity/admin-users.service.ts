@@ -31,6 +31,7 @@ export class AdminUsersService {
 
   async list(query: ListUsersQueryDto) {
     const where: Prisma.UserWhereInput = {
+      registrationExpiresAt: null,
       ...(query.role ? { role: query.role } : {}),
       ...(query.status ? { status: query.status } : {}),
       ...(query.search
@@ -151,7 +152,8 @@ export class AdminUsersService {
 
     const clientPhoneChanged =
       user.role === 'CLIENT' && phone !== undefined && phone !== user.phone;
-    const updated = await this.prisma.user.update({
+    const staffEmailChanged = user.role !== 'CLIENT' && email !== undefined && email !== user.email;
+    const updateUser = this.prisma.user.update({
       where: { id: user.id },
       data: {
         fullName: dto.fullName?.trim(),
@@ -159,12 +161,28 @@ export class AdminUsersService {
         phone,
         email,
         ...(clientPhoneChanged
-          ? { phoneVerifiedAt: null, status: 'PENDING_VERIFICATION' }
+          ? {
+              phoneVerifiedAt: null,
+              status: 'PENDING_VERIFICATION',
+              registrationExpiresAt: null,
+            }
           : user.role === 'NAIL_TECHNICIAN' && email !== undefined
             ? { emailVerifiedAt: new Date() }
             : {}),
       },
     });
+    const updated =
+      clientPhoneChanged || staffEmailChanged
+        ? (
+            await this.prisma.$transaction([
+              updateUser,
+              this.prisma.verificationChallenge.updateMany({
+                where: { userId: user.id, consumedAt: null },
+                data: { consumedAt: new Date() },
+              }),
+            ])
+          )[0]
+        : await updateUser;
     if (clientPhoneChanged) await this.sessions.revokeAll(user.id);
     await this.audit.record({
       actorUserId: actor.id,
@@ -190,13 +208,26 @@ export class AdminUsersService {
         message: 'El perfil debe verificar su WhatsApp antes de activar la cuenta.',
       });
     }
-    const updated = await this.prisma.user.update({
+    const updateUser = this.prisma.user.update({
       where: { id: user.id },
       data: {
         status,
         archivedAt: status === 'ARCHIVED' ? new Date() : null,
+        registrationExpiresAt: status === 'PENDING_VERIFICATION' ? undefined : null,
       },
     });
+    const updated =
+      status === 'PAUSED' || status === 'ARCHIVED'
+        ? (
+            await this.prisma.$transaction([
+              updateUser,
+              this.prisma.verificationChallenge.updateMany({
+                where: { userId: user.id, consumedAt: null },
+                data: { consumedAt: new Date() },
+              }),
+            ])
+          )[0]
+        : await updateUser;
     if (status !== 'ACTIVE') await this.sessions.revokeAll(user.id);
     await this.audit.record({
       actorUserId: actor.id,
@@ -215,6 +246,12 @@ export class AdminUsersService {
     request: Request,
   ): Promise<{ recovery: ChallengeIssueResult }> {
     const user = await this.findEditable(userId);
+    if (user.archivedAt || user.status === 'PAUSED' || user.status === 'ARCHIVED') {
+      throw new ConflictException({
+        code: 'ACCOUNT_UNAVAILABLE',
+        message: 'No se puede enviar recuperaci\u00f3n a una cuenta pausada o archivada.',
+      });
+    }
     const channel = user.role === 'CLIENT' ? 'WHATSAPP' : 'EMAIL';
     const destination = user.role === 'CLIENT' ? user.phone : user.email;
     if (!destination) {

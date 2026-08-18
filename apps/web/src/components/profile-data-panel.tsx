@@ -6,7 +6,9 @@ import type { FormEvent } from 'react';
 
 import { apiFetch } from '@/lib/api';
 import type { ChallengeResult, CurrentUser, Sex } from '@/lib/api';
+import { verificationChallengeForStorage } from '@/lib/verification-storage';
 import { PasswordField } from './password-field';
+import { PhoneField } from './phone-field';
 import styles from './portal.module.css';
 
 const sexOptions: Array<{ value: Sex; label: string }> = [
@@ -56,7 +58,7 @@ export function ProfileDataPanel() {
       if (result.verification) {
         sessionStorage.setItem(
           'da_verification',
-          JSON.stringify({ ...result.verification, phone: enteredPhone }),
+          JSON.stringify(verificationChallengeForStorage(result.verification)),
         );
         router.replace('/verificar');
         router.refresh();
@@ -109,22 +111,18 @@ export function ProfileDataPanel() {
           )}
         </div>
         <div className={styles.gridTwo}>
-          <div className={styles.field}>
-            <label htmlFor="phone">WhatsApp {user.role === 'CLIENT' ? '' : '(opcional)'}</label>
-            <input
-              autoComplete="tel"
-              defaultValue={user.phone ?? ''}
-              id="phone"
-              name="phone"
-              required={user.role === 'CLIENT'}
-              type="tel"
-            />
-            {user.role === 'CLIENT' ? (
-              <span className={styles.fieldHint}>
-                Si lo cambias, enviaremos un código al número nuevo.
-              </span>
-            ) : null}
-          </div>
+          <PhoneField
+            defaultValue={user.phone}
+            hint={
+              user.role === 'CLIENT'
+                ? 'Si lo cambias, enviaremos un código al número nuevo.'
+                : undefined
+            }
+            id="phone"
+            label={`WhatsApp ${user.role === 'CLIENT' ? '' : '(opcional)'}`.trim()}
+            name="phone"
+            required={user.role === 'CLIENT'}
+          />
           {user.role !== 'CLIENT' ? (
             <div className={styles.field}>
               <label htmlFor="email">Correo de acceso</label>

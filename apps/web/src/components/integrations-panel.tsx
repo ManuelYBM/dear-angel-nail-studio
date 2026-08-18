@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { apiFetch } from '@/lib/api';
@@ -8,8 +8,8 @@ import type { CurrentUser } from '@/lib/api';
 import styles from './portal.module.css';
 
 interface IntegrationStatus {
-  whatsapp: { mode: 'real' | 'mock'; configured: boolean };
-  email: { mode: 'real' | 'mock'; configured: boolean };
+  whatsapp: { mode: 'real' | 'testing' | 'development' | 'unavailable'; configured: boolean };
+  email: { mode: 'real' | 'development' | 'unavailable'; configured: boolean };
   googleCalendar: { enabled: boolean; configured: boolean };
 }
 
@@ -24,6 +24,8 @@ interface CalendarStatus {
 
 export function IntegrationsPanel() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const googleResult = searchParams.get('google');
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
   const [calendar, setCalendar] = useState<CalendarStatus | null>(null);
@@ -55,30 +57,41 @@ export function IntegrationsPanel() {
   }
 
   async function disconnectCalendar() {
-    await apiFetch('/integrations/google-calendar', { method: 'DELETE' });
-    setCalendar((current) =>
-      current
-        ? { ...current, connected: false, connectedAt: null, lastSyncAt: null, lastError: null }
-        : current,
-    );
+    setError('');
+    try {
+      await apiFetch('/integrations/google-calendar', { method: 'DELETE' });
+      setCalendar((current) =>
+        current
+          ? { ...current, connected: false, connectedAt: null, lastSyncAt: null, lastError: null }
+          : current,
+      );
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No pudimos desconectar el calendario.');
+    }
   }
 
   if (!user || !status) return <div className={styles.loading}>Consultando conexiones…</div>;
+
+  const modeLabel = (
+    mode: 'real' | 'testing' | 'development' | 'unavailable',
+    realLabel: string,
+  ) => {
+    if (mode === 'real') return realLabel;
+    if (mode === 'testing') return 'Entrega real de prueba habilitada';
+    if (mode === 'development') return 'Simulación local habilitada';
+    return 'Canal no disponible';
+  };
 
   return (
     <div className={styles.card}>
       <div className={styles.accountNavigation}>
         <article className={styles.accountNavCard}>
           <span>WhatsApp</span>
-          <strong>
-            {status.whatsapp.mode === 'real'
-              ? 'Avisos automáticos activos'
-              : 'Modo de demostración'}
-          </strong>
+          <strong>{modeLabel(status.whatsapp.mode, 'Proveedor real configurado')}</strong>
         </article>
         <article className={styles.accountNavCard}>
           <span>Correo del personal</span>
-          <strong>{status.email.mode === 'real' ? 'Envío activo' : 'Modo de demostración'}</strong>
+          <strong>{modeLabel(status.email.mode, 'Proveedor real configurado')}</strong>
         </article>
       </div>
       {user.role === 'NAIL_TECHNICIAN' ? (
@@ -86,6 +99,19 @@ export function IntegrationsPanel() {
           <div className={styles.divider} />
           <section>
             <h2>Google Calendar</h2>
+            {googleResult === 'connected' ? (
+              <div className={styles.success} role="status">
+                Google Calendar quedó conectado. Las citas confirmadas se sincronizarán aquí.
+              </div>
+            ) : googleResult === 'denied' ? (
+              <div className={styles.notice} role="status">
+                Cancelaste la autorización. No hicimos cambios en tu calendario.
+              </div>
+            ) : googleResult === 'error' ? (
+              <div className={styles.error} role="alert">
+                Google no completó la conexión. Vuelve a intentarlo o revisa la configuración.
+              </div>
+            ) : null}
             <p className={styles.intro}>
               {calendar?.connected
                 ? 'Tus citas confirmadas se mantienen sincronizadas desde Dear Angel.'

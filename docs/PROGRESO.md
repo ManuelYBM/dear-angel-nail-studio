@@ -1,189 +1,124 @@
 # Progreso de implementación
 
-## Estado al 12 de agosto de 2026
+## Estado al 14 de agosto de 2026
 
-| Fase                               | Estado     | Resultado                                               |
-| ---------------------------------- | ---------- | ------------------------------------------------------- |
-| 0. Fundamentos y documentación     | Completada | Alcance, decisiones y arquitectura documentados         |
-| 1. Base Docker y sistema visual    | Completada | Seis servicios locales operativos                       |
-| 2. Identidad, seguridad y roles    | Completada | Acceso seguro y administración de clientas/manicuristas |
-| 3. Disponibilidad y agenda         | Completada | Horarios flexibles y citas protegidas contra traslapes  |
-| 4. Catálogo, calculadora y cotiza. | Completada | Diseños, favoritos y revisión previa a la reserva       |
-| 5. Visitas y recompensas           | Completada | Camino visual, cupones, promociones y canje manual      |
-| 6. Anticipos SPEI                  | Completada | Comprobantes privados y revisión administrativa         |
-| 7. Notificaciones e integraciones  | Completada | Centro interno, avisos, reintentos y Google Calendar    |
-| 8. Panel administrativo y PWA      | Completada | Reportes, auditoría, marca editable y aplicación PWA    |
-| 9. Calidad, seguridad y entrega    | Completada | Respaldo probado, e2e, manuales y ensayo Docker limpio  |
+| Fase                               | Estado       | Resultado actual                                                    |
+| ---------------------------------- | ------------ | ------------------------------------------------------------------- |
+| 0. Fundamentos y documentación     | Implementada | Alcance, decisiones y arquitectura actualizados                     |
+| 1. Base Docker y sistema visual    | Implementada | Compose local en loopback; reconstrucción y ensayo limpio aprobados |
+| 2. Identidad, seguridad y roles    | Implementada | Roles, lada visible, E.164 estricto y OTP mock sólo con opt-in      |
+| 3. Disponibilidad y agenda         | Implementada | Agenda sin traslapes, paginada y con política dinámica              |
+| 4. Catálogo, calculadora y cotiza. | Implementada | Galería con portada, cancelación y privacidad de cotizaciones       |
+| 5. Visitas y recompensas           | Implementada | Camino visual, cupones, promociones y canje manual                  |
+| 6. Anticipos SPEI                  | Implementada | Comprobantes privados y revisión administrativa                     |
+| 7. Notificaciones e integraciones  | Implementada | Bandeja persistente, BullMQ real e integraciones activables         |
+| 8. Panel administrativo y PWA      | Implementada | Reportes, auditoría, marca editable y PWA                           |
+| 9. Calidad, seguridad y entrega    | Completada   | Calidad, Docker, E2E, respaldo/restauración y manuales aprobados    |
 
-## Entregado hasta la fase 7
+“Implementada” describe que la capacidad está presente en el repositorio. La fase 9 registra además la ejecución real de la lista de liberación sobre esta candidata; las credenciales de proveedores externos continúan como dependencias operativas y no como trabajo de código pendiente.
 
-- Registro de clientas por WhatsApp, OTP simulado/real, recuperación y sesiones seguras.
-- Acceso de administradora y manicuristas por correo o teléfono.
-- Alta, edición, pausa, archivo y reactivación de perfiles.
-- Horario global inicial de lunes a viernes, 08:00 a 24:00.
-- Horarios personalizados con varios periodos diarios y descansos.
-- Fechas especiales, pausa de nuevas reservaciones y advertencias sobre citas existentes.
-- Disponibilidad pública por manicurista o “Cualquiera”.
-- Ventana configurable de anticipación, horizonte, duración, intervalo y retención.
-- Citas en línea retenidas 10 minutos y citas manuales a cualquier minuto.
-- Reprogramación de clienta una vez con 24 horas de anticipación.
-- Cambios del personal sin consumir la oportunidad de la clienta.
-- Cancelación, confirmación, cita atendida y ausencia.
-- Restricción PostgreSQL que impide traslapes aun con solicitudes concurrentes.
-- Pantallas responsive `/reservar`, `/agenda` y `/horarios`.
-- Catálogo visual público con búsqueda, técnica, favoritos y reserva directa.
-- Panel exclusivo de la administradora para diseños, imágenes, precios, tiempos y publicación.
-- Calculadora migrada desde la herramienta anterior con 33 opciones editables.
-- Técnicas, largos, decoraciones y extras administrables, con emoji o icono personalizado.
-- Solicitudes personalizadas y flujo “No tengo diseño”, con hasta cinco imágenes.
-- Elección de revisora o “Cualquiera”, toma atómica y asignación administrativa.
-- Aprobación o rechazo con precio, duración y comentarios confirmados.
-- Reserva posterior limitada a la manicurista responsable y duración aprobada.
-- Ojito accesible para mostrar u ocultar todos los campos de contraseña.
-- Navegación móvil visible y textos públicos revisados como producto final.
-- Contador global construido con movimientos auditables y una visita única por cita atendida.
-- Migración de citas atendidas anteriores para conservar el historial existente.
-- Reglas ilimitadas por número de visita y recompensa inicial de visita 2 con 10%.
-- Camino visual con hitos bloqueados, disponibles y utilizados.
-- Cupones sin vencimiento, de un uso y separados completamente del anticipo.
-- Aviso de cupones disponibles en la agenda de manicuristas.
-- Canje manual ligado a una cita y prohibición de combinar dos cupones en la misma cita.
-- Reversión de canje y corrección de visitas exclusivas de la administradora.
-- Promociones generales configurables y entrega individual a clientas.
-- Anticipo SPEI global editable con referencia única y datos bancarios configurables.
-- Retención del horario durante diez minutos mientras se carga el comprobante.
-- Carga privada de JPG, PNG, WebP o PDF con aceptación versionada de políticas.
-- Estado “Pago por verificar” que mantiene bloqueado el horario.
-- Aprobación o rechazo exclusivos de la administradora; el rechazo libera el espacio.
-- Comprobante digital imprimible de la reservación aprobada.
-- Eliminación física programada de comprobantes al cumplir un año.
-- Página pública permanente de políticas y aviso dentro de la reserva.
-- Contraseña secundaria y discreta en perfiles normales; destacada solo para claves temporales.
-- Tratamiento cliente/clienta según el sexo registrado y redacción neutral cuando no se especifica.
-- Regreso visible en páginas internas e indicador persistente de la sesión activa.
-- Menú compacto en el avatar con cuenta, agenda, datos, notificaciones y cierre de sesión.
-- Edición protegida de nombre, tratamiento y contacto con contraseña actual.
-- Verificación obligatoria al cambiar el WhatsApp usado por un perfil cliente.
-- Centro interno de notificaciones con lectura, contador y acceso directo al detalle.
-- Avisos de citas, cambios, cotizaciones, anticipos, visitas, promociones y cupones.
-- Recordatorios programados 24 horas y 2 horas antes de citas confirmadas.
-- Entregas por WhatsApp o correo desacopladas de la operación principal.
-- Cinco intentos con espera progresiva y registro administrativo del último error.
-- Plantillas internas y nombres aprobados de Meta editables por la administradora.
-- OAuth de Google Calendar por manicurista con tokens cifrados mediante AES-256-GCM.
-- Alta, cambio y cancelación saliente de eventos de Google administrados por Dear Angel.
+## Cambios consolidados en esta revisión
 
-## Evidencia de verificación
+### Navegación y portada
 
-```text
-TypeScript API y web                         OK
-Build de producción NestJS y Next.js         OK
-Vitest API: 4 archivos / 11 pruebas          OK
-Docker: api, web, worker, postgres,
-        redis y minio saludables             OK
-Rutas web nuevas (HTTP 200)                  OK
-Disponibilidad de un día: 16 espacios        OK
-Segundo apartado del mismo horario: HTTP 409 OK
-Cita manual a las 13:43                      OK
-Cita manual traslapada: HTTP 409             OK
-Segunda reprogramación de clienta: HTTP 409  OK
-Pausa conserva citas y oculta disponibilidad OK
-Reducción de horario conserva y advierte     OK
-Vista de reserva revisada en escritorio/móvil OK
-Migraciones de catálogo y cotizaciones        OK
-Calculadora migrada: 33 opciones              OK
-Creación y revisión de cotización             OK
-Carga privada de imagen de referencia         OK
-Disponibilidad con duración de 75 min          OK
-Reserva de cotización con su responsable      OK
-Segunda reserva de la cotización: HTTP 409     OK
-Inicio, catálogo, acceso y cálculo a 390×844   OK
-Ancho de documento 390 px, sin desborde lateral OK
-Acceso móvil e ícono de contraseña visibles   OK
-Migración de fidelidad y restricciones SQL    OK
-Conteo idempotente por cita atendida           OK
-Desbloqueo único de recompensas                OK
-Canje no combinable y reversión administrativa OK
-Recompensas con datos a 390 px, sin desborde   OK
-Build de producción con las 21 rutas web       OK
-Vista pública por túnel HTTP/2                OK
-Migraciones SPEI y retención anual aplicadas   OK
-Anticipo aprobado confirma la cita             OK
-Anticipo rechazado libera el horario           OK
-Comprobante pendiente conserva el horario      OK
-Apartado vencido libera el horario             OK
-Comprobante privado sin sesión: HTTP 401       OK
-Folio digital y referencias únicas             OK
-API Vitest: 5 archivos / 14 pruebas            OK
-Build web de producción con 24 rutas           OK
-Migración de notificaciones e integraciones     OK
-Edición de perfil con contraseña correcta       OK
-Contraseña incorrecta al editar: HTTP 401       OK
-Creación, conteo y lectura de notificación      OK
-Cuenta, datos y avisos a 390×844 sin desborde   OK
-Menú de avatar dentro del viewport móvil        OK
-Build web de producción con 28 rutas            OK
-TypeScript API, web y worker                    OK
-API, web y enlace permanente HTTP 200           OK
+- Una sola barra global aparece en todas las rutas, permanece visible durante el desplazamiento y ofrece Inicio, Experiencia, Diseños, Reservar, Políticas y sesión.
+- En escritorio usa una fila; en tablet y móvil conserva marca y sesión arriba y permite desplazar horizontalmente los accesos sin provocar scroll lateral de la página.
+- Las rutas internas conservan el botón Regresar, muestran el apartado activo y compensan la altura del encabezado para anclas y resúmenes sticky.
+- Inicio incluye una selección de hasta tres diseños destacados, con imagen optimizada, duración, precio, reserva directa y acceso al catálogo completo; el catálogo mantiene filtros y favoritos.
+
+### Worker y tareas periódicas
+
+- `apps/worker` usa BullMQ sobre Redis; ya no es sólo un proceso de salud o una base futura.
+- Registra cinco programadores: entregas pendientes cada 30 segundos, recordatorios cada 5 minutos, vencimiento de anticipos cada minuto, retención de comprobantes cada 6 horas y limpieza de autorregistros vencidos cada hora.
+- Cada trabajo llama un endpoint interno de la API y presenta `WORKER_SHARED_SECRET` en `x-worker-token`.
+- La API compara el secreto de forma segura y sólo acepta nombres de trabajo conocidos.
+- `BACKGROUND_JOBS_MODE=worker` desactiva los programadores equivalentes dentro de la API para evitar ejecución duplicada.
+- La salud del worker exige Redis, programadores configurados y una llamada reciente exitosa por cada trabajo; éxitos y fallos se conservan en Redis para no perder el estado al reiniciar.
+
+### Entorno local y publicación temporal
+
+- El Compose base queda reservado al desarrollo local y publica web, API, worker, PostgreSQL, Redis y MinIO únicamente en `127.0.0.1`.
+- Los túneles Cloudflare y ngrok viven en `docker/compose.public.yaml`; se levantan combinando ese overlay con `compose.yaml`, `--env-file .env.public` y el perfil correspondiente. `.env.public.example` es la plantilla sin secretos.
+- El overlay fija `name: dear-angel-public`, crea volúmenes independientes y se alterna con el proyecto local porque ambos enlazan los mismos puertos. Detener uno para iniciar el otro no elimina sus datos.
+- El overlay público usa `NODE_ENV=production`, deshabilita `OTP_MOCK_DEBUG_ENABLED` y exige contraseñas, secretos, URLs HTTPS y decisiones explícitas para WhatsApp y SMTP.
+- `.env.example` usa `localhost` para PostgreSQL, Redis y MinIO y sirve como referencia de ejecución en Windows. `compose.yaml` inyecta por separado los hosts internos de su red a los contenedores.
+- El worker ejecutado en host no carga automáticamente el `.env` raíz; sus variables deben exportarse en la terminal o proporcionarse mediante Compose.
+
+### Identidad y OTP de desarrollo
+
+- El código OTP simulado está deshabilitado por defecto. Sólo se incluye en la respuesta cuando coinciden `NODE_ENV=development` y la activación temporal `OTP_MOCK_DEBUG_ENABLED=true`; debe volver a `false` al terminar la prueba local.
+- Producción rechaza el flag de depuración y también rechaza el proveedor WhatsApp mock cuando WhatsApp real está habilitado.
+- El mock sigue disponible para demostraciones locales deliberadas, sin convertirlo en un comportamiento de producción.
+- Los formularios muestran país y lada —México `+52` por defecto—, normalizan a E.164 y separan correctamente un número internacional pegado o ya guardado. La API exige lada explícita y ya no infiere México.
+- La sesión temporal de verificación nunca persiste `debugCode` y limpia datos antiguos. Meta usa Graph API configurable (`v26.0` por defecto) y plantillas `AUTHENTICATION` con botón **Copiar código**; el arranque completa nombres de plantilla faltantes sin sobrescribir ajustes administrativos.
+- El autorregistro permanece como borrador durante un máximo de 24 horas: no activa la cuenta, no crea sesión y no participa en agenda, lealtad ni reportes antes de confirmar el OTP.
+- Un intento interrumpido se reanuda al iniciar con el mismo teléfono y contraseña válidos. El reenvío usa el `challengeId` de esa verificación, nunca un teléfono aislado; un fallo del primer envío descarta el borrador y el quinto trabajo periódico elimina los vencidos.
+
+### Agenda y políticas
+
+- `GET /appointments` acepta `cursor` y `limit`, devuelve `items`, `nextCursor` y la `policy` vigente.
+- La interfaz solicita páginas de 20 citas, concatena sin duplicados y ofrece “Cargar citas anteriores” mientras exista cursor.
+- El límite de reprogramaciones de clienta y las horas mínimas de aviso se obtienen de la política administrable; ya no se documentan como valores fijos de la interfaz.
+- La política conserva también duración, intervalo, anticipación mínima, horizonte de reserva y tiempo de retención configurables.
+- La restricción PostgreSQL contra traslapes y las validaciones de disponibilidad continúan siendo la fuente de verdad.
+
+### Cotizaciones y catálogo
+
+- La clienta puede cancelar una cotización mientras esté `PENDING_REVIEW` o `IN_REVIEW`, siempre que no tenga una cita activa asociada.
+- Una clienta sólo ve sus solicitudes. Una manicurista ve las solicitudes abiertas que puede tomar y, después del reclamo o asignación, sólo la responsable conserva acceso; la administradora mantiene la vista operativa completa. Las imágenes adjuntas reutilizan esa autorización y no se almacenan en caché pública.
+- El estado `CANCELLED` está representado en API e interfaz y la cancelación queda auditada.
+- Cada diseño admite una galería de hasta cinco imágenes. La administradora puede subir, eliminar y elegir “Usar como portada” sin borrar el resto de la galería.
+- Una imagen nueva puede convertirse en portada y, si se elimina la actual, la siguiente imagen ordenada ocupa ese lugar.
+- El listado público acepta `limit` entre 1 y 6 para alimentar previews eficientes sin descargar todo el catálogo; conserva el orden de destacados, orden manual y fecha.
+
+### Calidad y respaldo
+
+- El proyecto requiere Node.js `>=22.0.0` y npm `>=10.9.0`.
+- `pretypecheck`, `prelint`, `pretest` y `prebuild` ejecutan `npm run db:generate`, por lo que Prisma Client se regenera antes de cada etapa de calidad.
+- `npm run quality` encadena typecheck, ESLint, pruebas, build y comprobación de formato.
+- La ejecución del 14 de agosto de 2026 pasó completa: tipado de API/web/worker, ESLint, 30 archivos con 104 pruebas de API, 6 pruebas del worker, builds de las tres aplicaciones, 33 rutas Next y formato.
+- El `.tar.gz` de respaldo contiene manifiesto y hashes internos SHA-256; el checksum externo se genera como archivo adyacente. La verificación exige ambos y rechaza rutas inseguras o contenido incompatible.
+- `scripts/verify-backup.ps1` valida el par de archivos y `npm run backup:test-restore` restaura en destinos aislados, compara el número de objetos con el manifiesto e informa —sin compararlos contra el manifiesto— los conteos de usuarios y migraciones aplicadas.
+- El marcador de salud persiste en el volumen de respaldos y se actualiza tras una copia manual o programada; la restauración operativa verifica el archivo antes de detener aplicaciones y las deja detenidas si falla después de comenzar la mutación.
+- Los scripts PowerShell anteriores apuntan al proyecto local. El proyecto público usa su daemon `backup`; una copia o verificación manual pública debe invocar Compose con `.env.public` y ambos archivos.
+- La existencia de estas verificaciones y procedimientos está confirmada en el repositorio; su ejecución final sobre la candidata actual se registrará cuando se confirme la validación Docker.
+
+## Estado de validación de la candidata
+
+| Control                                                  | Estado documental                                           |
+| -------------------------------------------------------- | ----------------------------------------------------------- |
+| Contratos de worker, OTP, agenda, cotizaciones y portada | Confirmados por inspección del código                       |
+| Regeneración automática de Prisma en calidad             | Confirmada en `package.json`                                |
+| Formato verificable de respaldo y restauración aislada   | Aprobado: 15 migraciones, 8 usuarios y 6 objetos            |
+| `npm run quality` sobre la candidata completa            | Aprobada: API 104/104 y worker 6/6; tipos, lint y builds OK |
+| Salud de todos los servicios Docker                      | Aprobada: siete servicios saludables y puertos en loopback  |
+| `npm run test:e2e`                                       | Aprobada: 48 controles, incluido autorregistro interrumpido |
+| `npm run test:clean-install`                             | Aprobada y entorno principal restaurado saludable           |
+| HTML y PDF de los dos manuales                           | Regenerados y revisados visualmente                         |
+| Túnel público con credenciales definitivas               | Pendiente externo                                           |
+
+Comandos previstos para cerrar la validación:
+
+```powershell
+npm run quality
+npm run backup:now
+npm run backup:test-restore
+npm run test:e2e
+npm run test:clean-install
 ```
 
-Los registros creados para la prueba end-to-end fueron eliminados al terminar.
+`test:clean-install` no relanza los perfiles `preview` ni `stable-preview`; los túneles se administran por separado con los dos archivos Compose.
 
-## Fase 8 — Panel administrativo, reportes y PWA
+## Pendientes externos no bloqueantes
 
-- Dashboard exclusivo de la administradora con citas, atenciones, ausencias, cancelaciones, anticipos, clientela frecuente y diseños populares.
-- Periodos de hasta 366 días calculados y presentados en `America/Merida`.
-- Reportes detallados de citas, anticipos, clientela y diseños con filtros de estado y manicurista cuando corresponde.
-- Descargas CSV y XLSX generadas desde las mismas consultas que alimentan las tablas, con protección contra fórmulas inyectadas.
-- Auditoría paginada con filtros por fechas, acción, entidad y rol responsable, además de exportación completa.
-- Edición administrativa de nombre, frase, ciudad, dirección, teléfono, WhatsApp, redes, mapa, logo e icono.
-- Marca pública dinámica con imágenes almacenadas en MinIO.
-- PWA instalable con accesos directos, indicación específica para iPhone, aviso de desconexión y pantalla offline.
-- El service worker excluye `/api`, sesiones y datos privados de su caché.
-- Interfaz administrativa responsive y redactada para la administradora.
+- Credenciales y alta de Meta WhatsApp Business Platform.
+- Aprobación de plantillas de WhatsApp.
+- Contraseña de aplicación y validación del remitente SMTP.
+- Cliente OAuth y autorización de Google Calendar.
+- Datos bancarios SPEI definitivos.
+- Logo, dirección, teléfonos, redes y mapa definitivos.
+- Decisión de alojamiento permanente, dominio y TLS para producción; los túneles actuales son sólo de demostración.
 
-## Evidencia adicional de fase 8
+## Cierre de la fase 9
 
-```text
-TypeScript API, web y worker                     OK
-Build NestJS y Next.js (33 rutas web)            OK
-ESLint completo                                  OK
-npm audit producción: 0 vulnerabilidades         OK
-Vitest API: 6 archivos / 16 pruebas              OK
-XLSX Open XML y neutralización CSV probados       OK
-Migración de panel y marca aplicada en Docker     OK
-API, web, worker, PostgreSQL, Redis y MinIO sanos OK
-Dashboard, 4 reportes y auditoría con permisos   OK
-Exportaciones CSV/XLSX integradas                 OK
-Manifest, service worker y enlace HTTPS HTTP 200 OK
-4 vistas administrativas a 390 px sin desborde   OK
-Avatar de sesión persistente en las 4 vistas     OK
-```
-
-## Fase 9 — Calidad, seguridad y entrega
-
-- Respaldos atómicos semanales de PostgreSQL y MinIO con manifiesto, sumas SHA-256 y retención configurable.
-- Verificación y restauración aislada probadas sin modificar la instalación principal.
-- Seed demostrativo explícito, repetible y compuesto sólo por perfiles y archivos ficticios.
-- Validación de secretos y orígenes HTTPS cuando la API se ejecuta en producción.
-- CSP, protección contra marcos, MIME sniffing, políticas de permisos y HSTS en la web.
-- Prueba end-to-end de autenticación, permisos por rol, archivos privados, traslapes, panel, reportes, exportaciones y auditoría.
-- Manual de usuario con capturas reales, manual técnico/operativo y especificación 1.1 en PDF.
-- Ensayo desde una instalación Docker vacía, con limpieza restringida a los volúmenes temporales.
-
-## Evidencia de fase 9
-
-```text
-TypeScript, ESLint y build de 33 rutas             OK
-Vitest API: 7 archivos / 19 pruebas                OK
-npm audit de producción: 0 vulnerabilidades       OK
-End-to-end integrado: 27 / 27 controles            OK
-Respaldo PostgreSQL + 6 objetos MinIO verificado   OK
-Restauración aislada: 9 usuarios / 13 migraciones OK
-Instalación Docker limpia + seed + e2e            OK
-Web, API, worker y enlace HTTPS saludables         OK
-```
-
-## Siguiente incremento
-
-Revisión funcional con Dear Angel y sustitución de datos provisionales: logo, contacto, SPEI y credenciales aprobadas de WhatsApp, correo y Google Calendar.
+La fase 9 quedó completada después de registrar la salida exitosa de calidad, respaldo/restauración, Docker limpio y E2E sobre la misma candidata, además de regenerar y revisar los manuales. Meta, SMTP, Google Calendar y los datos definitivos del negocio permanecen en la lista externa porque dependen de cuentas y decisiones de la propietaria.

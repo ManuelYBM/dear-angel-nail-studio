@@ -47,10 +47,10 @@ export function StudioProvider({ children }: { children: ReactNode }) {
   return <StudioContext.Provider value={settings}>{children}</StudioContext.Provider>;
 }
 
-export function StudioBrand({ portal = false }: { portal?: boolean }) {
+export function StudioBrand({ portal = false, href = '/' }: { portal?: boolean; href?: string }) {
   const studio = useContext(StudioContext);
   return (
-    <Link className={`${styles.brand} ${portal ? styles.portal : ''}`} href="/">
+    <Link className={`${styles.brand} ${portal ? styles.portal : ''}`} href={href}>
       <span className={styles.mark}>
         {studio.hasIcon ? (
           <img alt="" src={`/api/backend/studio/icon?v=${studio.brandVersion}`} />
@@ -102,6 +102,7 @@ export function StudioFooterInfo() {
             WhatsApp
           </a>
         ) : null}
+        {studio.publicPhone ? <a href={`tel:${studio.publicPhone}`}>Teléfono</a> : null}
         {studio.instagramUrl ? (
           <a href={studio.instagramUrl} rel="noreferrer" target="_blank">
             Instagram
@@ -120,6 +121,11 @@ export function StudioFooterInfo() {
         {studio.mapUrl ? (
           <a href={studio.mapUrl} rel="noreferrer" target="_blank">
             Cómo llegar
+          </a>
+        ) : null}
+        {studio.websiteUrl ? (
+          <a href={studio.websiteUrl} rel="noreferrer" target="_blank">
+            Sitio web
           </a>
         ) : null}
       </div>

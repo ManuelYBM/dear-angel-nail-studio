@@ -2,7 +2,12 @@ import { Body, Controller, Get, Patch, Post, Req, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
-import { CurrentSessionId, CurrentUser, Public } from '../common/auth.decorators';
+import {
+  AllowPasswordChangeRequired,
+  CurrentSessionId,
+  CurrentUser,
+  Public,
+} from '../common/auth.decorators';
 import type { AuthenticatedUser } from '../common/auth.types';
 import {
   ChangePasswordDto,
@@ -42,7 +47,7 @@ export class AuthController {
   @Post('resend-verification')
   @Throttle({ default: { limit: 3, ttl: 60_000 } })
   resendVerification(@Body() dto: ResendVerificationDto) {
-    return this.auth.resendVerification(dto.phone);
+    return this.auth.resendVerification(dto.challengeId);
   }
 
   @Public()
@@ -71,6 +76,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @AllowPasswordChangeRequired()
   me(@CurrentUser() user: AuthenticatedUser) {
     return this.auth.me(user.id);
   }
@@ -85,6 +91,7 @@ export class AuthController {
   }
 
   @Post('change-password')
+  @AllowPasswordChangeRequired()
   changePassword(
     @CurrentUser() user: AuthenticatedUser,
     @CurrentSessionId() sessionId: string,
@@ -95,11 +102,13 @@ export class AuthController {
   }
 
   @Post('logout')
+  @AllowPasswordChangeRequired()
   logout(@CurrentSessionId() sessionId: string, @Res({ passthrough: true }) response: Response) {
     return this.auth.logout(sessionId, response);
   }
 
   @Post('logout-all')
+  @AllowPasswordChangeRequired()
   logoutAll(
     @CurrentUser() user: AuthenticatedUser,
     @Res({ passthrough: true }) response: Response,

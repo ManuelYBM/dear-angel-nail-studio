@@ -45,10 +45,17 @@ verify_archive() (
   echo "[restore] Respaldo íntegro y compatible."
 )
 
-if [[ "${1:-restore}" == "verify" ]]; then
-  verify_archive
-  exit 0
-fi
+case "${1:-restore}" in
+  verify)
+    verify_archive
+    exit 0
+    ;;
+  manifest)
+    verify_archive >&2
+    tar -xOzf "${archive}" ./manifest.json
+    exit 0
+    ;;
+esac
 
 if [[ "${ALLOW_RESTORE:-false}" != "true" ]]; then
   echo "La restauración requiere ALLOW_RESTORE=true." >&2
@@ -61,8 +68,14 @@ trap 'rm -rf -- "${work_dir}"' EXIT
 tar -xzf "${archive}" -C "${work_dir}"
 
 echo "[restore] Restaurando PostgreSQL..."
-pg_restore --clean --if-exists --no-owner --no-acl --single-transaction \
-  --dbname "${PGDATABASE}" "${work_dir}/database.dump"
+pg_restore --no-owner --no-acl --file "${work_dir}/database.sql" \
+  "${work_dir}/database.dump"
+{
+  printf 'DROP SCHEMA IF EXISTS public CASCADE;\n'
+  printf 'CREATE SCHEMA public AUTHORIZATION :"db_user";\n'
+  cat "${work_dir}/database.sql"
+} | psql -X --single-transaction --set ON_ERROR_STOP=1 --set "db_user=${PGUSER}" \
+  --dbname "${PGDATABASE}"
 
 protocol="http"
 if [[ "${MINIO_USE_SSL}" == "true" ]]; then protocol="https"; fi

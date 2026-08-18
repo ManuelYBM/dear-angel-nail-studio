@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { canReviewDeposit, canUploadReceipt, confirmationCode } from './payment.rules';
+import {
+  canReviewDeposit,
+  canUploadReceipt,
+  confirmationCode,
+  paymentReviewActionUrl,
+} from './payment.rules';
 
 describe('reglas de anticipos', () => {
   it('permite subir comprobante solamente durante un apartado vigente', () => {
@@ -18,5 +23,12 @@ describe('reglas de anticipos', () => {
 
   it('deriva un folio digital estable de la referencia SPEI', () => {
     expect(confirmationCode('DA-260812-ABC123')).toBe('RES-260812-ABC123');
+  });
+
+  it('dirige un rechazo al anticipo exacto', () => {
+    expect(paymentReviewActionUrl('REJECTED', 'appointment-id')).toBe(
+      '/anticipo?appointmentId=appointment-id',
+    );
+    expect(paymentReviewActionUrl('APPROVED', 'appointment-id')).toBe('/agenda');
   });
 });

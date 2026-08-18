@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 import { apiFetch } from '@/lib/api';
@@ -49,9 +50,14 @@ function localDate(value: string) {
   }).format(new Date(value));
 }
 
+function dateParam(value: string | null, fallback: string) {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : fallback;
+}
+
 export function AdminAuditPanel() {
-  const [from, setFrom] = useState(() => dateKey(29));
-  const [to, setTo] = useState(() => dateKey());
+  const searchParams = useSearchParams();
+  const [from, setFrom] = useState(() => dateParam(searchParams.get('from'), dateKey(29)));
+  const [to, setTo] = useState(() => dateParam(searchParams.get('to'), dateKey()));
   const [action, setAction] = useState('');
   const [entityType, setEntityType] = useState('');
   const [actorRole, setActorRole] = useState('');
@@ -147,7 +153,7 @@ export function AdminAuditPanel() {
             <option value="">Todas</option>
             <option value="ADMIN">Administradora</option>
             <option value="NAIL_TECHNICIAN">Manicuristas</option>
-            <option value="CLIENT">Clientela</option>
+            <option value="CLIENT">Clientes</option>
           </select>
         </label>
         <button disabled={loading} onClick={apply} type="button">

@@ -18,4 +18,4 @@ if (-not $resolved.EndsWith('.tar.gz', [StringComparison]::OrdinalIgnoreCase)) {
 $name = [IO.Path]::GetFileName($resolved)
 Set-Location -LiteralPath $workspace
 docker compose --profile tools run --rm -e "BACKUP_FILE=/backups/$name" restore verify
-if ($LASTEXITCODE -ne 0) { throw 'El respaldo no pasó la verificación.' }
+if ($LASTEXITCODE -ne 0) { throw 'El respaldo no paso la verificacion.' }

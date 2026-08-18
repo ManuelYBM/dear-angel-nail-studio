@@ -5,8 +5,8 @@ import { PhoneService } from './phone.service';
 describe('PhoneService', () => {
   const service = new PhoneService();
 
-  it('normaliza números mexicanos al formato E.164', () => {
-    expect(service.normalize('999 123 4567')).toBe('+529991234567');
+  it('normaliza números mexicanos con lada explícita al formato E.164', () => {
+    expect(service.normalize('+52 999 123 4567')).toBe('+529991234567');
   });
 
   it('acepta números internacionales', () => {
@@ -15,5 +15,9 @@ describe('PhoneService', () => {
 
   it('rechaza texto y números incompletos', () => {
     expect(() => service.normalize('123')).toThrow();
+  });
+
+  it('no infiere México cuando falta la lada', () => {
+    expect(() => service.normalize('999 123 4567')).toThrow(/lada internacional/);
   });
 });

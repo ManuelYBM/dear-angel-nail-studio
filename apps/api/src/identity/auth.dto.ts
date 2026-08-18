@@ -54,10 +54,8 @@ export class VerifyCodeDto {
 }
 
 export class ResendVerificationDto {
-  @Transform(trim)
-  @IsString()
-  @MaxLength(30)
-  phone!: string;
+  @IsUUID()
+  challengeId!: string;
 }
 
 export class LoginDto {

@@ -6,19 +6,28 @@ set -Eeuo pipefail
 : "${PGDATABASE:=dear_angel}"
 : "${PGUSER:=dear_angel}"
 : "${BACKUP_INTERVAL_SECONDS:=604800}"
+: "${BACKUP_RETRY_SECONDS:=300}"
 : "${BACKUP_RETENTION_DAYS:=90}"
 : "${MINIO_ENDPOINT:=minio}"
 : "${MINIO_PORT:=9000}"
 : "${MINIO_BUCKET:=dear-angel-private}"
 : "${MINIO_USE_SSL:=false}"
+: "${BACKUP_HEALTH_MARKER:=/backups/.last-success}"
 
 export PGHOST PGPORT PGDATABASE PGUSER
 
 backup_once() (
-  local stamp work_dir archive temporary_archive protocol
+  set -Eeuo pipefail
+  local stamp suffix work_dir archive temporary_archive protocol object_count
+  exec 9>/backups/.backup.lock
+  if ! flock -n 9; then
+    echo "[backup] Ya hay otro respaldo en curso." >&2
+    return 75
+  fi
   stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  suffix="$(printf '%04x' "${RANDOM}")"
   work_dir="$(mktemp -d "/backups/.incomplete-${stamp}-XXXXXX")"
-  archive="/backups/dear-angel-${stamp}.tar.gz"
+  archive="/backups/dear-angel-${stamp}-${suffix}.tar.gz"
   temporary_archive="${archive}.tmp"
   protocol="http"
   if [[ "${MINIO_USE_SSL}" == "true" ]]; then protocol="https"; fi
@@ -39,12 +48,15 @@ backup_once() (
   mc stat "source/${MINIO_BUCKET}" >/dev/null
   mc mirror --quiet "source/${MINIO_BUCKET}" "${work_dir}/minio"
 
+  object_count="$(find "${work_dir}/minio" -type f | wc -l | tr -d ' ')"
+
   cat >"${work_dir}/manifest.json" <<EOF
 {
-  "formatVersion": 1,
+  "formatVersion": 2,
   "createdAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "database": "${PGDATABASE}",
-  "storageBucket": "${MINIO_BUCKET}"
+  "storageBucket": "${MINIO_BUCKET}",
+  "storageObjectCount": ${object_count}
 }
 EOF
   (
@@ -61,17 +73,33 @@ EOF
     -mtime "+${BACKUP_RETENTION_DAYS}" -delete
 )
 
+mark_ready() {
+  local temporary_marker="${BACKUP_HEALTH_MARKER}.tmp.$$"
+  date -u +%s > "${temporary_marker}"
+  mv -- "${temporary_marker}" "${BACKUP_HEALTH_MARKER}"
+}
+
 case "${1:-daemon}" in
   once)
     backup_once
+    mark_ready
     ;;
   daemon)
-    backup_once
-    touch /tmp/backup-ready
     while true; do
-      sleep "${BACKUP_INTERVAL_SECONDS}"
-      if ! backup_once; then
-        echo "[backup] El intento programado falló; se reintentará en el siguiente intervalo." >&2
+      set +e
+      backup_once
+      status=$?
+      set -e
+      if [[ "${status}" == "0" ]]; then
+        mark_ready
+        sleep "${BACKUP_INTERVAL_SECONDS}"
+      else
+        if [[ "${status}" == "75" ]]; then
+          echo "[backup] Otro proceso conserva el bloqueo; se reintentará pronto." >&2
+        else
+          echo "[backup] El intento programado falló; se reintentará pronto." >&2
+        fi
+        sleep "${BACKUP_RETRY_SECONDS}"
       fi
     done
     ;;

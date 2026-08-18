@@ -7,6 +7,7 @@ export const metadata: Metadata = { title: 'Administrar catálogo' };
 export default function AdminCatalogPage() {
   return (
     <PortalShell
+      access="admin"
       eyebrow="Panel de la administradora"
       title="Catálogo y precios bajo tu control."
       intro="Publica trabajos, cambia precios, tiempos y opciones de la calculadora sin modificar código."

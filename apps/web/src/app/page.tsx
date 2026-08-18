@@ -1,13 +1,8 @@
 import Link from 'next/link';
 
+import { HomeDesignPreview } from '@/components/home-design-preview';
 import { HomeHeroActions } from '@/components/home-hero-actions';
-import { SessionIndicator } from '@/components/session-indicator';
-import {
-  StudioBrand,
-  StudioFooterInfo,
-  StudioHeroTitle,
-  StudioLogo,
-} from '@/components/studio-brand';
+import { StudioFooterInfo, StudioHeroTitle, StudioLogo } from '@/components/studio-brand';
 
 const foundations = [
   {
@@ -30,28 +25,10 @@ const foundations = [
 
 export default function HomePage() {
   return (
-    <main>
+    <main id="main-content">
       <section className="hero">
         <div className="cloud cloud--one" aria-hidden="true" />
         <div className="cloud cloud--two" aria-hidden="true" />
-
-        <nav className="nav shell" aria-label="Navegación principal">
-          <StudioBrand />
-          <div className="nav__actions">
-            <a href="#experiencia">Experiencia</a>
-            <Link href="/catalogo">Diseños</Link>
-            <Link href="/reservar">Reservar</Link>
-            <SessionIndicator />
-          </div>
-        </nav>
-
-        <nav className="home-mobile-navigation" aria-label="Accesos rápidos">
-          <span className="home-mobile-links">
-            <Link href="/catalogo">Diseños</Link>
-            <Link href="/reservar">Reservar</Link>
-          </span>
-          <SessionIndicator compact mobileOnlyWhenAnonymous />
-        </nav>
 
         <div className="hero__content shell">
           <div className="hero__copy">
@@ -73,6 +50,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <HomeDesignPreview />
 
       <section className="experience shell" id="experiencia">
         <div className="section-heading">

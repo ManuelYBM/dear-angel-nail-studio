@@ -7,6 +7,20 @@ import { PhoneService } from './phone.service';
 const DEVELOPMENT_EMAIL = 'admin@dearangel.local';
 const DEVELOPMENT_PASSWORD = 'DearAngelDemo2026';
 
+export function assertValidInitialAdminPassword(password: string, production: boolean): void {
+  if (
+    password.length < 8 ||
+    password.length > 128 ||
+    !/[A-Za-z\u00c0-\u024f]/.test(password) ||
+    !/\d/.test(password) ||
+    (production && password === DEVELOPMENT_PASSWORD)
+  ) {
+    throw new Error(
+      'ADMIN_INITIAL_PASSWORD debe tener entre 8 y 128 caracteres, al menos una letra y un n\u00famero, y no ser la clave de demostraci\u00f3n.',
+    );
+  }
+}
+
 @Injectable()
 export class BootstrapAdminService implements OnModuleInit {
   private readonly logger = new Logger(BootstrapAdminService.name);
@@ -31,6 +45,7 @@ export class BootstrapAdminService implements OnModuleInit {
         'Configura ADMIN_EMAIL y ADMIN_INITIAL_PASSWORD antes de iniciar producción.',
       );
     }
+    assertValidInitialAdminPassword(password, production);
     const phone = process.env.ADMIN_PHONE?.trim()
       ? this.phones.normalize(process.env.ADMIN_PHONE)
       : undefined;

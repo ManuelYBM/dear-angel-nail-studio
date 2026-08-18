@@ -8,9 +8,11 @@ export const metadata: Metadata = { title: 'Mi cuenta' };
 export default function AccountPage() {
   return (
     <PortalShell
-      eyebrow="Mi Dear Angel"
-      title="Un espacio hecho para ti."
-      intro="Desde aquí puedes entrar a tu agenda, reservar una cita o configurar la disponibilidad de trabajo según tu perfil."
+      access="authenticated"
+      allowPasswordChange
+      eyebrow="Cuenta personal"
+      title="Tu información, en un solo lugar."
+      intro="Consulta tus datos, revisa tus avisos y administra la seguridad de tu cuenta."
     >
       <AccountPanel />
     </PortalShell>

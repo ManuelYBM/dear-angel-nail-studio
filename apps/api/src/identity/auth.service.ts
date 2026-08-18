@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import type { Sex, User } from '@prisma/client';
+import { Prisma, type Sex, type User } from '@prisma/client';
 
 import type { AuthenticatedUser } from '../common/auth.types';
 import { requestIp } from '../common/request-meta';
@@ -23,11 +23,13 @@ import type {
 import { AuditService } from './audit.service';
 import { ChallengeService, type ChallengeIssueResult } from './challenge.service';
 import { PasswordService } from './password.service';
+import { PendingRegistrationService } from './pending-registration.service';
 import { PhoneService } from './phone.service';
 import { SessionService } from './session.service';
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
+const RESETTABLE_STATUSES: User['status'][] = ['ACTIVE', 'INVITED', 'PENDING_VERIFICATION'];
 
 export interface PublicUser {
   id: string;
@@ -40,6 +42,9 @@ export interface PublicUser {
   mustChangePassword: boolean;
 }
 
+export type LoginResult =
+  { user: PublicUser } | { verificationRequired: true; verification: ChallengeIssueResult };
+
 @Injectable()
 export class AuthService {
   private readonly dummyHash: Promise<string>;
@@ -49,6 +54,7 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly phones: PhoneService,
     private readonly challenges: ChallengeService,
+    private readonly pendingRegistrations: PendingRegistrationService,
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
   ) {
@@ -61,6 +67,8 @@ export class AuthService {
   ): Promise<{ user: PublicUser; verification: ChallengeIssueResult }> {
     this.assertPasswordConfirmation(dto.password, dto.passwordConfirmation);
     const phone = this.phones.normalize(dto.phone);
+    const now = new Date();
+    await this.pendingRegistrations.discardExpiredForPhone(phone, now);
     const existing = await this.prisma.user.findUnique({ where: { phone } });
     if (existing) {
       throw new ConflictException({
@@ -70,36 +78,72 @@ export class AuthService {
     }
 
     const passwordHash = await this.passwords.hash(dto.password);
-    const user = await this.prisma.user.create({
-      data: {
-        role: 'CLIENT',
-        status: 'PENDING_VERIFICATION',
-        fullName: dto.fullName.trim(),
-        sex: dto.sex,
-        phone,
-        passwordHash,
-      },
-    });
+    const registrationExpiresAt = this.pendingRegistrations.expirationFrom(now);
+    let user: User;
+    try {
+      user = await this.prisma.user.create({
+        data: {
+          role: 'CLIENT',
+          status: 'PENDING_VERIFICATION',
+          fullName: dto.fullName.trim(),
+          sex: dto.sex,
+          phone,
+          passwordHash,
+          registrationExpiresAt,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException({
+          code: 'PHONE_ALREADY_REGISTERED',
+          message: 'Este número ya tiene un perfil. Puedes iniciar sesión o recuperar tu acceso.',
+        });
+      }
+      throw error;
+    }
+    let verification: ChallengeIssueResult;
+    try {
+      verification = await this.challenges.issue(user, 'VERIFY_PHONE', 'WHATSAPP', phone);
+    } catch (error) {
+      await this.pendingRegistrations.discardFailedRegistration(user.id, registrationExpiresAt);
+      throw error;
+    }
     await this.audit.record({
       action: 'CLIENT_SELF_REGISTERED',
       entityType: 'User',
       entityId: user.id,
       ipAddress: requestIp(request),
     });
-    const verification = await this.challenges.issue(user, 'VERIFY_PHONE', 'WHATSAPP', phone);
     return { user: this.publicUser(user), verification };
   }
 
-  async resendVerification(phoneInput: string): Promise<ChallengeIssueResult> {
-    const phone = this.phones.normalize(phoneInput);
-    const user = await this.prisma.user.findUnique({ where: { phone } });
-    if (!user || user.role !== 'CLIENT' || user.status !== 'PENDING_VERIFICATION') {
+  async resendVerification(challengeId: string): Promise<ChallengeIssueResult> {
+    const previous = await this.prisma.verificationChallenge.findUnique({
+      where: { id: challengeId },
+      include: { user: true },
+    });
+    if (
+      !previous ||
+      previous.purpose !== 'VERIFY_PHONE' ||
+      previous.channel !== 'WHATSAPP' ||
+      previous.user.archivedAt ||
+      previous.user.role !== 'CLIENT' ||
+      previous.user.status !== 'PENDING_VERIFICATION' ||
+      !previous.user.phone ||
+      previous.user.phone !== previous.destination
+    ) {
       throw new ForbiddenException({
         code: 'VERIFICATION_NOT_AVAILABLE',
         message: 'Este perfil no requiere verificación o no está disponible.',
       });
     }
-    return this.challenges.issue(user, 'VERIFY_PHONE', 'WHATSAPP', phone);
+    if (await this.pendingRegistrations.discardIfExpired(previous.user)) {
+      throw new ForbiddenException({
+        code: 'REGISTRATION_EXPIRED',
+        message: 'Este registro caducó. Crea tu cuenta nuevamente.',
+      });
+    }
+    return this.challenges.issue(previous.user, 'VERIFY_PHONE', 'WHATSAPP', previous.user.phone);
   }
 
   async verifyPhone(
@@ -108,12 +152,47 @@ export class AuthService {
     response: Response,
   ): Promise<{ user: PublicUser }> {
     const challenge = await this.challenges.consume(dto.challengeId, dto.code, 'VERIFY_PHONE');
+    if (await this.pendingRegistrations.discardIfExpired(challenge.user)) {
+      throw new ForbiddenException({
+        code: 'REGISTRATION_EXPIRED',
+        message: 'Este registro caducó. Crea tu cuenta nuevamente.',
+      });
+    }
     if (challenge.user.role !== 'CLIENT' || challenge.channel !== 'WHATSAPP') {
       throw new ForbiddenException({ code: 'INVALID_CODE', message: 'El código no es válido.' });
     }
-    const user = await this.prisma.user.update({
+    if (
+      challenge.user.role !== 'CLIENT' ||
+      challenge.user.status !== 'PENDING_VERIFICATION' ||
+      challenge.user.archivedAt ||
+      challenge.channel !== 'WHATSAPP' ||
+      challenge.user.phone !== challenge.destination
+    ) {
+      throw new ForbiddenException({
+        code: 'INVALID_CODE',
+        message: 'El c\u00f3digo no es v\u00e1lido.',
+      });
+    }
+    const verifiedAt = new Date();
+    const activated = await this.prisma.user.updateMany({
+      where: {
+        id: challenge.userId,
+        role: 'CLIENT',
+        status: 'PENDING_VERIFICATION',
+        archivedAt: null,
+        phone: challenge.destination,
+        OR: [{ registrationExpiresAt: null }, { registrationExpiresAt: { gt: verifiedAt } }],
+      },
+      data: { status: 'ACTIVE', phoneVerifiedAt: verifiedAt, registrationExpiresAt: null },
+    });
+    if (activated.count !== 1) {
+      throw new ForbiddenException({
+        code: 'INVALID_CODE',
+        message: 'El c\u00f3digo no es v\u00e1lido.',
+      });
+    }
+    const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: challenge.userId },
-      data: { status: 'ACTIVE', phoneVerifiedAt: new Date() },
     });
     await this.sessions.create(user.id, request, response);
     await this.audit.record({
@@ -126,23 +205,56 @@ export class AuthService {
     return { user: this.publicUser(user) };
   }
 
-  async login(dto: LoginDto, request: Request, response: Response): Promise<{ user: PublicUser }> {
+  async login(dto: LoginDto, request: Request, response: Response): Promise<LoginResult> {
     const user = await this.findByIdentifier(dto.identifier);
     const hash = user?.passwordHash ?? (await this.dummyHash);
     const passwordMatches = await this.passwords.verify(dto.password, hash);
 
-    if (user?.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+    const accountLocked = Boolean(user?.lockedUntil && user.lockedUntil.getTime() > Date.now());
+    if (accountLocked && passwordMatches) {
       throw new TooManyRequestsException({
         code: 'ACCOUNT_LOCKED',
         message: 'Demasiados intentos. Intenta nuevamente en unos minutos.',
       });
     }
     if (!user || !user.passwordHash || !passwordMatches) {
-      if (user) await this.recordFailedLogin(user, request);
+      if (user && !accountLocked) await this.recordFailedLogin(user, request);
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
         message: 'El correo, teléfono o contraseña no coincide.',
       });
+    }
+    if (user.status === 'PENDING_VERIFICATION') {
+      if (await this.pendingRegistrations.discardIfExpired(user)) {
+        throw new ForbiddenException({
+          code: 'REGISTRATION_EXPIRED',
+          message: 'Este registro caducó. Crea tu cuenta nuevamente.',
+        });
+      }
+      if (user.role !== 'CLIENT' || !user.phone || user.archivedAt) {
+        throw new ForbiddenException({
+          code: 'VERIFICATION_NOT_AVAILABLE',
+          message: 'Este perfil no puede verificarse.',
+        });
+      }
+      const verification = await this.challenges.resumeOrIssue(
+        user,
+        'VERIFY_PHONE',
+        'WHATSAPP',
+        user.phone,
+      );
+      await this.prisma.user.updateMany({
+        where: { id: user.id, status: 'PENDING_VERIFICATION', archivedAt: null },
+        data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
+      await this.audit.record({
+        actorUserId: user.id,
+        action: 'PHONE_VERIFICATION_RESUMED',
+        entityType: 'User',
+        entityId: user.id,
+        ipAddress: requestIp(request),
+      });
+      return { verificationRequired: true, verification };
     }
     this.assertCanLogin(user);
 
@@ -165,7 +277,12 @@ export class AuthService {
     recovery?: ChallengeIssueResult;
   }> {
     const user = await this.findByIdentifier(dto.identifier);
-    if (!user || user.status === 'ARCHIVED') return { accepted: true };
+    if (!user || user.archivedAt || !RESETTABLE_STATUSES.includes(user.status)) {
+      return { accepted: true };
+    }
+    if (await this.pendingRegistrations.discardIfExpired(user)) {
+      return { accepted: true };
+    }
 
     if (user.role === 'CLIENT' && user.phone) {
       return {
@@ -185,20 +302,55 @@ export class AuthService {
   async resetPassword(dto: ResetPasswordDto, request: Request): Promise<{ reset: true }> {
     this.assertPasswordConfirmation(dto.password, dto.passwordConfirmation);
     const challenge = await this.challenges.consume(dto.challengeId, dto.code, 'RESET_PASSWORD');
+    const registrationExpired = await this.pendingRegistrations.discardIfExpired(challenge.user);
+    const destinationMatches =
+      (challenge.user.role === 'CLIENT' &&
+        challenge.channel === 'WHATSAPP' &&
+        challenge.user.phone === challenge.destination) ||
+      (challenge.user.role !== 'CLIENT' &&
+        challenge.channel === 'EMAIL' &&
+        challenge.user.email === challenge.destination);
+    if (
+      challenge.user.archivedAt ||
+      registrationExpired ||
+      !RESETTABLE_STATUSES.includes(challenge.user.status) ||
+      !destinationMatches
+    ) {
+      throw new ForbiddenException({
+        code: 'RESET_NOT_AVAILABLE',
+        message: 'Este restablecimiento ya no est\u00e1 disponible.',
+      });
+    }
     const passwordHash = await this.passwords.hash(dto.password);
-    await this.prisma.user.update({
-      where: { id: challenge.userId },
+    const resetAt = new Date();
+    const reset = await this.prisma.user.updateMany({
+      where: {
+        id: challenge.userId,
+        status: challenge.user.status,
+        archivedAt: null,
+        OR: [{ registrationExpiresAt: null }, { registrationExpiresAt: { gt: resetAt } }],
+        ...(challenge.channel === 'WHATSAPP'
+          ? { role: 'CLIENT', phone: challenge.destination }
+          : { role: { not: 'CLIENT' }, email: challenge.destination }),
+      },
       data: {
         passwordHash,
         status: 'ACTIVE',
         mustChangePassword: false,
         failedLoginAttempts: 0,
         lockedUntil: null,
+        registrationExpiresAt: null,
         ...(challenge.channel === 'WHATSAPP'
-          ? { phoneVerifiedAt: challenge.user.phoneVerifiedAt ?? new Date() }
-          : { emailVerifiedAt: challenge.user.emailVerifiedAt ?? new Date() }),
+          ? { phoneVerifiedAt: challenge.user.phoneVerifiedAt ?? resetAt }
+          : { emailVerifiedAt: challenge.user.emailVerifiedAt ?? resetAt }),
       },
     });
+    if (reset.count !== 1) {
+      throw new ForbiddenException({
+        code: 'RESET_NOT_AVAILABLE',
+        message: 'Este restablecimiento ya no est\u00e1 disponible.',
+      });
+    }
     await this.sessions.revokeAll(challenge.userId);
     await this.audit.record({
       actorUserId: challenge.userId,
@@ -327,7 +479,11 @@ export class AuthService {
         phone: user.role === 'CLIENT' ? phone : phone || null,
         email: user.role === 'CLIENT' ? null : email,
         ...(user.role === 'CLIENT' && phoneChanged
-          ? { phoneVerifiedAt: null, status: 'PENDING_VERIFICATION' }
+          ? {
+              phoneVerifiedAt: null,
+              status: 'PENDING_VERIFICATION',
+              registrationExpiresAt: null,
+            }
           : {}),
         ...(user.role !== 'CLIENT' && emailChanged ? { emailVerifiedAt: new Date() } : {}),
       },
@@ -360,18 +516,27 @@ export class AuthService {
   }
 
   private async recordFailedLogin(user: User, request: Request): Promise<void> {
-    const attempts = user.failedLoginAttempts + 1;
-    const lockedUntil =
-      attempts >= MAX_LOGIN_ATTEMPTS ? new Date(Date.now() + LOCK_MINUTES * 60 * 1000) : null;
-    await this.prisma.user.update({
+    const failed = await this.prisma.user.update({
       where: { id: user.id },
-      data: { failedLoginAttempts: attempts, lockedUntil },
+      data: { failedLoginAttempts: { increment: 1 } },
     });
+    const locked = failed.failedLoginAttempts >= MAX_LOGIN_ATTEMPTS;
+    if (locked && (!failed.lockedUntil || failed.lockedUntil.getTime() <= Date.now())) {
+      const now = new Date();
+      await this.prisma.user.updateMany({
+        where: {
+          id: user.id,
+          failedLoginAttempts: { gte: MAX_LOGIN_ATTEMPTS },
+          OR: [{ lockedUntil: null }, { lockedUntil: { lte: now } }],
+        },
+        data: { lockedUntil: new Date(now.getTime() + LOCK_MINUTES * 60 * 1000) },
+      });
+    }
     await this.audit.record({
       action: 'LOGIN_FAILED',
       entityType: 'User',
       entityId: user.id,
-      metadata: { attempts, locked: Boolean(lockedUntil) },
+      metadata: { attempts: failed.failedLoginAttempts, locked },
       ipAddress: requestIp(request),
     });
   }

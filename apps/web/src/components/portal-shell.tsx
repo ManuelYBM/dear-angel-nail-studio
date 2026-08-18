@@ -1,9 +1,7 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { BackButton } from './back-button';
-import { SessionIndicator } from './session-indicator';
-import { StudioBrand } from './studio-brand';
+import { AccessGate } from './access-gate';
+import type { AccessLevel } from './access-gate';
 import styles from './portal.module.css';
 
 interface PortalShellProps {
@@ -13,7 +11,8 @@ interface PortalShellProps {
   children: ReactNode;
   aside?: ReactNode;
   wide?: boolean;
-  hideAnonymousSession?: boolean;
+  access?: AccessLevel;
+  allowPasswordChange?: boolean;
 }
 
 export function PortalShell({
@@ -23,30 +22,26 @@ export function PortalShell({
   children,
   aside,
   wide,
-  hideAnonymousSession,
+  access,
+  allowPasswordChange,
 }: PortalShellProps) {
   return (
-    <main className={styles.page}>
+    <main className={styles.page} id="main-content">
       <div className={styles.glow} aria-hidden="true" />
-      <header className={styles.header}>
-        <div className={styles.headerStart}>
-          <BackButton />
-          <StudioBrand portal />
-        </div>
-        <SessionIndicator hideWhenAnonymous={hideAnonymousSession} />
-        <nav className={styles.mobilePortalNavigation} aria-label="Accesos rápidos">
-          <Link href="/catalogo">Diseños</Link>
-          <Link href="/reservar">Reservar</Link>
-          <Link href="/politicas">Políticas</Link>
-        </nav>
-      </header>
-
-      <section className={`${styles.layout} ${wide ? styles.layoutWide : ''}`}>
+      <section
+        className={`${styles.layout} ${aside ? '' : styles.layoutSingle} ${wide ? styles.layoutWide : ''}`}
+      >
         <div className={styles.content}>
           <span className={styles.eyebrow}>{eyebrow}</span>
           <h1>{title}</h1>
           <p className={styles.intro}>{intro}</p>
-          {children}
+          {access ? (
+            <AccessGate access={access} allowPasswordChange={allowPasswordChange}>
+              {children}
+            </AccessGate>
+          ) : (
+            children
+          )}
         </div>
         {aside ? <aside className={styles.aside}>{aside}</aside> : null}
       </section>

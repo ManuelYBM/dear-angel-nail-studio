@@ -43,6 +43,7 @@ export function AccountPanel() {
       setSuccess('Tu contraseña quedó actualizada. También cerramos tus otras sesiones.');
       form.reset();
       setUser((current) => (current ? { ...current, mustChangePassword: false } : current));
+      window.dispatchEvent(new Event('dearangel:session-changed'));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'No pudimos cambiar la contraseña.');
     } finally {
@@ -51,9 +52,23 @@ export function AccountPanel() {
   }
 
   async function logout() {
-    await apiFetch('/auth/logout', { method: 'POST' }).catch(() => undefined);
-    router.replace('/acceso');
-    router.refresh();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' });
+      window.dispatchEvent(new Event('dearangel:session-changed'));
+      router.replace('/acceso');
+      router.refresh();
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'No pudimos cerrar la sesión. Tu sesión sigue abierta.',
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (!user) return <div className={styles.loading}>Abriendo tu espacio…</div>;
@@ -74,111 +89,28 @@ export function AccountPanel() {
           Estás usando una contraseña temporal. Cámbiala antes de continuar con tu cuenta.
         </div>
       ) : null}
-      <div className={styles.divider} />
+      {!user.mustChangePassword ? <div className={styles.divider} /> : null}
       {!user.mustChangePassword ? (
-        <div className={styles.accountNavigation}>
-          <Link className={styles.accountNavCard} href="/mis-datos">
-            <span>Mi perfil</span>
-            <strong>Revisar mis datos</strong>
+        <nav
+          aria-label="Opciones de la cuenta"
+          className={`${styles.accountNavigation} ${styles.personalNavigation}`}
+        >
+          <Link className={`${styles.accountNavCard} ${styles.personalNavCard}`} href="/mis-datos">
+            <span>Datos personales</span>
+            <strong>Revisar mi información</strong>
+            <small>Nombre, contacto y preferencias de mi cuenta.</small>
           </Link>
-          <Link className={styles.accountNavCard} href="/notificaciones">
+          <Link
+            className={`${styles.accountNavCard} ${styles.personalNavCard}`}
+            href="/notificaciones"
+          >
             <span>Avisos</span>
-            <strong>Ver notificaciones</strong>
+            <strong>Ver mis notificaciones</strong>
+            <small>Novedades y mensajes relacionados con mi cuenta.</small>
           </Link>
-          {user.role === 'CLIENT' ? (
-            <>
-              <Link className={styles.accountNavCard} href="/catalogo">
-                <span>Inspiración</span>
-                <strong>Explorar diseños</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/cotizaciones">
-                <span>Mis ideas</span>
-                <strong>Ver cotizaciones</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/reservar">
-                <span>Reservar</span>
-                <strong>Encontrar mi próxima cita</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/agenda">
-                <span>Mis citas</span>
-                <strong>Ver y reprogramar</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/recompensas">
-                <span>Mis beneficios</span>
-                <strong>Ver visitas y cupones</strong>
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link className={styles.accountNavCard} href="/cotizaciones">
-                <span>Solicitudes</span>
-                <strong>Revisar cotizaciones</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/agenda">
-                <span>Agenda</span>
-                <strong>Gestionar citas</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/horarios">
-                <span>Horarios</span>
-                <strong>Configurar disponibilidad</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/recompensas/equipo">
-                <span>Fidelidad</span>
-                <strong>Consultar y canjear cupones</strong>
-              </Link>
-            </>
-          )}
-          {user.role === 'ADMIN' ? (
-            <>
-              <Link className={styles.accountNavCard} href="/administracion">
-                <span>Resumen</span>
-                <strong>Ver indicadores del estudio</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/administracion/reportes">
-                <span>Reportes</span>
-                <strong>Consultar y exportar datos</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/administracion/auditoria">
-                <span>Auditoría</span>
-                <strong>Revisar actividad del sistema</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/administracion/configuracion">
-                <span>Estudio</span>
-                <strong>Logo, contacto y ubicación</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/administracion/usuarios">
-                <span>Equipo</span>
-                <strong>Administrar personas</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/administracion/catalogo">
-                <span>Contenido</span>
-                <strong>Catálogo y calculadora</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/administracion/recompensas">
-                <span>Beneficios</span>
-                <strong>Reglas y promociones</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/administracion/anticipos">
-                <span>Transferencias</span>
-                <strong>Revisar anticipos</strong>
-              </Link>
-              <Link className={styles.accountNavCard} href="/administracion/notificaciones">
-                <span>Comunicación</span>
-                <strong>Plantillas y entregas</strong>
-              </Link>
-            </>
-          ) : null}
-          {user.role !== 'CLIENT' ? (
-            <Link className={styles.accountNavCard} href="/integraciones">
-              <span>Conexiones</span>
-              <strong>
-                {user.role === 'NAIL_TECHNICIAN' ? 'Google Calendar y avisos' : 'Estado de canales'}
-              </strong>
-            </Link>
-          ) : null}
-        </div>
+        </nav>
       ) : null}
-      {user.mustChangePassword ? <div className={styles.divider} /> : null}
+      <div className={styles.divider} />
       {user.mustChangePassword ? (
         <section className={styles.requiredSecurity}>
           <h2>Crea tu contraseña personal</h2>
@@ -192,21 +124,22 @@ export function AccountPanel() {
           />
         </section>
       ) : (
-        <details className={styles.securityDetails}>
-          <summary>
+        <section className={styles.accountSecurity} aria-labelledby="account-security-title">
+          <div className={styles.accountSectionHeader}>
             <span>Seguridad</span>
-            <strong>Contraseña y cierre de sesión</strong>
-          </summary>
-          <div className={styles.securityContent}>
-            <PasswordForm
-              error={error}
-              loading={loading}
-              onLogout={logout}
-              onSubmit={changePassword}
-              success={success}
-            />
+            <h2 id="account-security-title">Contraseña y sesión</h2>
+            <p>
+              Actualiza tu contraseña o cierra la sesión de este dispositivo cuando lo necesites.
+            </p>
           </div>
-        </details>
+          <PasswordForm
+            error={error}
+            loading={loading}
+            onLogout={logout}
+            onSubmit={changePassword}
+            success={success}
+          />
+        </section>
       )}
     </div>
   );
@@ -252,8 +185,13 @@ function PasswordForm({ error, loading, onLogout, onSubmit, success }: PasswordF
         <button className={styles.primaryButton} disabled={loading} type="submit">
           Guardar contraseña
         </button>
-        <button className={styles.secondaryButton} onClick={onLogout} type="button">
-          Cerrar sesión
+        <button
+          className={styles.secondaryButton}
+          disabled={loading}
+          onClick={onLogout}
+          type="button"
+        >
+          {loading ? 'Procesando…' : 'Cerrar sesión'}
         </button>
       </div>
     </form>

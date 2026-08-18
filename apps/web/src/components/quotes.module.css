@@ -39,6 +39,11 @@
   background: #f7dfe3;
   color: #a65264;
 }
+
+.CANCELLED {
+  background: #f2eded;
+  color: #705c64;
+}
 .quoteCard h2 {
   margin: 10px 0 3px;
   color: #49383f;

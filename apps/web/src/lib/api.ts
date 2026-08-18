@@ -180,6 +180,12 @@ export interface BookingPolicy {
   clientRescheduleLimit: number;
 }
 
+export interface AppointmentListResponse {
+  items: Appointment[];
+  nextCursor?: string | null;
+  policy?: BookingPolicy;
+}
+
 export type CalculatorOptionKind = 'TECHNIQUE' | 'LENGTH' | 'DECORATION' | 'EXTRA';
 
 export interface CalculatorOption {
@@ -223,7 +229,7 @@ export interface CatalogDesign {
   images: CatalogImage[];
 }
 
-export type QuoteStatus = 'PENDING_REVIEW' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
+export type QuoteStatus = 'PENDING_REVIEW' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 
 export interface CustomQuote {
   id: string;
@@ -473,5 +479,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 }
 
 export function destinationForRole(role: UserRole): string {
-  return role === 'ADMIN' ? '/administracion' : '/mi-cuenta';
+  if (role === 'ADMIN') return '/administracion';
+  if (role === 'NAIL_TECHNICIAN') return '/agenda';
+  return '/mi-cuenta';
 }

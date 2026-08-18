@@ -146,7 +146,7 @@ export class NotificationsService {
     const now = new Date();
     const stale = new Date(now.getTime() - 10 * 60_000);
     await this.prisma.notificationDelivery.updateMany({
-      where: { status: 'PROCESSING', lockedAt: { lt: stale }, attempts: { lt: 5 } },
+      where: { status: 'PROCESSING', lockedAt: { lt: stale } },
       data: { status: 'FAILED', lockedAt: null, nextAttemptAt: now },
     });
     const candidates = await this.prisma.notificationDelivery.findMany({
@@ -216,13 +216,14 @@ export class NotificationsService {
     const appointments = await this.prisma.appointment.findMany({
       where: { status: 'CONFIRMED', startAt: { gt: now, lte: in24Hours } },
       include: { client: true, technician: true },
+      orderBy: { startAt: 'asc' },
       take: 500,
     });
     for (const appointment of appointments) {
       const hours = (appointment.startAt.getTime() - now.getTime()) / 3_600_000;
-      const window = hours <= 2 ? '2h' : hours >= 23.5 ? '24h' : null;
-      if (!window) continue;
-      const title = window === '2h' ? 'Tu cita es en unas horas' : 'Tu cita es mañana';
+      const window = hours <= 2 ? '2h' : '24h';
+      const title = window === '2h' ? 'Tu cita es en unas horas' : 'Tu cita se acerca';
+      const scheduleKey = appointment.startAt.toISOString();
       const body = `${appointment.startAt.toLocaleString('es-MX', {
         timeZone: process.env.TZ ?? 'America/Merida',
         dateStyle: 'long',
@@ -236,7 +237,7 @@ export class NotificationsService {
           body,
           actionUrl: '/agenda',
           templateKey: 'appointment_reminder',
-          dedupeKey: `reminder:${window}:${appointment.id}:client`,
+          dedupeKey: `reminder:${window}:${appointment.id}:${scheduleKey}:client`,
           external: true,
         });
       }
@@ -247,7 +248,7 @@ export class NotificationsService {
         body,
         actionUrl: '/agenda',
         templateKey: 'appointment_reminder',
-        dedupeKey: `reminder:${window}:${appointment.id}:technician`,
+        dedupeKey: `reminder:${window}:${appointment.id}:${scheduleKey}:technician`,
         external: true,
       });
     }

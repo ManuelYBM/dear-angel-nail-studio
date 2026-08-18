@@ -122,6 +122,7 @@ export class CalendarService {
   }
 
   async syncAppointment(appointmentId: string) {
+    if (process.env.GOOGLE_CALENDAR_ENABLED !== 'true') return { skipped: true };
     const appointment = await this.prisma.appointment.findUnique({
       where: { id: appointmentId },
       include: { technician: { include: { calendarConnection: true } }, client: true },
@@ -226,9 +227,13 @@ export class CalendarService {
           if (!response.ok && response.status !== 404)
             throw new Error(`Google Calendar respondió ${response.status}.`);
         } catch (error) {
-          this.logger.error(
-            `No se eliminó el evento anterior de ${appointmentId}: ${error instanceof Error ? error.message : String(error)}`,
-          );
+          const message = error instanceof Error ? error.message : String(error);
+          await this.prisma.calendarEventLink.update({
+            where: { appointmentId },
+            data: { status: 'FAILED', lastError: message.slice(0, 1000) },
+          });
+          this.logger.error(`No se eliminó el evento anterior de ${appointmentId}: ${message}`);
+          return { synced: false, previousEventRetained: true };
         }
       }
       await this.prisma.calendarEventLink.deleteMany({ where: { appointmentId } });

@@ -6,9 +6,12 @@ import type { AuthenticatedRequest, AuthenticatedUser } from './auth.types';
 
 export const IS_PUBLIC_KEY = 'dear-angel:is-public';
 export const ROLES_KEY = 'dear-angel:roles';
+export const ALLOW_PASSWORD_CHANGE_REQUIRED_KEY = 'dear-angel:allow-password-change-required';
 
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 export const Roles = (...roles: UserRole[]) => SetMetadata(ROLES_KEY, roles);
+export const AllowPasswordChangeRequired = () =>
+  SetMetadata(ALLOW_PASSWORD_CHANGE_REQUIRED_KEY, true);
 
 export const CurrentUser = createParamDecorator(
   (_data: unknown, context: ExecutionContext): AuthenticatedUser => {
